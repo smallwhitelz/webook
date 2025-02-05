@@ -12,11 +12,11 @@ import (
 
 // 这个需要手动跑，也就是你需要在本地搞好这些环境变量
 func TestSender(t *testing.T) {
-	secretId, ok := os.LookupEnv("AKID77sSowrpneKqDTBmCXkjU0JPJ0c0A6oJ")
+	secretId, ok := os.LookupEnv("")
 	if !ok {
 		t.Fatal()
 	}
-	secretKey, ok := os.LookupEnv("OZXJqvpZ7RWS9cx7rNfiaDesulNks8B1")
+	secretKey, ok := os.LookupEnv("")
 
 	c, err := sms.NewClient(common.NewCredential(secretId, secretKey),
 		"ap-nanjing",
