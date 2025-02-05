@@ -1,0 +1,73 @@
+version: "3"
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+#      - 初始化脚本
+      - ./script/mysql/:/docker-entrypoint-initdb.d/
+    ports:
+#      - 外部访问用13316
+      - 13316:3306
+
+  redis:
+    image: "bitnami/redis:latest"
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6379:6379
+
+  mongo:
+    image: mongo:6.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - 27017:27017
+
+  etcd:
+    image: "bitnami/etcd:latest"
+    restart: always
+    environment:
+      - ALLOW_NON_AUTHENTICATION=yes
+    ports:
+      - "12379:2379"
+
+  kafka:
+    image: 'bitnami/kafka:3.6.0'
+    ports:
+      - '9092:9092'
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      #      - 允许自动创建 topic，线上不要开启
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://43.154.97.245:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+  prometheus:
+    image: prom/prometheus:v2.47.2
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+
+  zipkin:
+    #    用的是不支持 Kafka 之类的简化版本
+    image: openzipkin/zipkin-slim:2.24
+    ports:
+      - '9411:9411'
+
+  grafana:
+    image: grafana/grafana-enterprise:10.2.0
+    ports:
+      - 3000:3000

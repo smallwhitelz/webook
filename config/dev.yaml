@@ -1,0 +1,12 @@
+test:
+  key: 1234
+
+redis:
+  addr: "43.154.97.245:6379"
+
+db:
+  dsn: "root:root@tcp(43.154.97.245:13316)/webook"
+
+kafka:
+  addr:
+    - "43.154.97.245:9094"

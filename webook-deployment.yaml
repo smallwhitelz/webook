@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webook-record-deployment
+spec:
+  replicas: 3
+  # 筛选器 我怎么知道k8s中那么多pod我管理的是哪些
+  selector:
+    matchLabels:
+      app: webook-record
+  template:
+    metadata:
+      labels:
+        # 这个 webook-record 一定要和前面的 selector 的 matchLabels 匹配上
+        app: webook-record
+    spec:
+      containers:
+        - name: webook-record
+          image: zl/webook:v0.0.1
+          ports:
+            - containerPort: 8080
+      
