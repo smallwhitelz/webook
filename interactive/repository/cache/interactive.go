@@ -9,7 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/core/hash"
 	"strconv"
 	"time"
-	"webook/internal/domain"
+	"webook/interactive/domain"
 )
 
 var (

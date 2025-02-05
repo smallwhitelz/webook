@@ -8,9 +8,9 @@ import (
 	"gorm.io/gorm"
 	"testing"
 	"time"
-	"webook/internal/domain"
+	"webook/interactive/domain"
+	"webook/interactive/repository/dao"
 	"webook/internal/integration/startup"
-	"webook/internal/repository/dao"
 )
 
 type InteractiveTestSuite struct {
