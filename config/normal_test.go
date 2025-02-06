@@ -10,9 +10,9 @@ type Req struct {
 }
 
 func Test_normal(t *testing.T) {
-	mod := "12331"
-	var req = Req{
-		ClusterIds: &mod,
+	m := make(map[int]int)
+	for i := 0; i < 100; i++ {
+		m[i] = i
+		fmt.Printf("i=%d, len(m)=%d\n", i, len(m))
 	}
-	fmt.Println(*req.ClusterIds)
 }
