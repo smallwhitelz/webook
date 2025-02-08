@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
@@ -9,8 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	domain2 "webook/interactive/domain"
-	service2 "webook/interactive/service"
+	intrv1 "webook/api/proto/gen/intr/v1"
 	"webook/internal/domain"
 	"webook/internal/service"
 	"webook/internal/web/jwt"
@@ -20,12 +18,12 @@ import (
 
 type ArticleHandler struct {
 	svc     service.ArticleService
-	intrSvc service2.InteractiveService
+	intrSvc intrv1.InteractiveServiceClient
 	l       logger.V1
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.V1, intrSvc service2.InteractiveService) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, l logger.V1, intrSvc intrv1.InteractiveServiceClient) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		l:       l,
@@ -202,28 +200,29 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 			Msg:  "id 参数错误",
 			Code: 4,
 		})
-		h.l.Warn("查询文章失败，id格式不对",
+		h.l.Warn("查询文章失败，id 格式不对",
 			logger.String("id", idstr),
 			logger.Error(err))
 		return
 	}
-	uc := ctx.MustGet("user").(jwt.UserClaims)
+
 	var (
 		eg   errgroup.Group
 		art  domain.Article
-		intr domain2.Interactive
+		intr *intrv1.GetResponse
 	)
 
+	uc := ctx.MustGet("user").(jwt.UserClaims)
 	eg.Go(func() error {
 		var er error
 		art, er = h.svc.GetPubById(ctx, id, uc.Uid)
 		return er
 	})
-
 	eg.Go(func() error {
-
 		var er error
-		intr, er = h.intrSvc.Get(ctx, h.biz, id, uc.Uid)
+		intr, er = h.intrSvc.Get(ctx, &intrv1.GetRequest{
+			Biz: h.biz, BizId: id, Uid: uc.Uid,
+		})
 		return er
 	})
 
@@ -240,30 +239,33 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 			logger.Error(err))
 		return
 	}
-	go func() {
-		// 1. 如果你想摆脱原本主链路的超时控制，你就创建一个新的
-		// 2. 如果你不想，就直接用ctx
-		newCtx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		er := h.intrSvc.IncrReadCnt(newCtx, h.biz, art.Id)
-		if er != nil {
-			h.l.Error("更新阅读数失败",
-				logger.Int64("aid", art.Id),
-				logger.Error(err))
-		}
-	}()
+
+	//go func() {
+	// 1. 如果你想摆脱原本主链路的超时控制，你就创建一个新的
+	// 2. 如果你不想，你就用 ctx
+	//newCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	//defer cancel()
+	//er := h.intrSvc.IncrReadCnt(newCtx, h.biz, art.Id)
+	//if er != nil {
+	//	h.l.Error("更新阅读数失败",
+	//		logger.Int64("aid", art.Id),
+	//		logger.Error(err))
+	//}
+	//}()
+
 	ctx.JSON(http.StatusOK, ginx.Result{
 		Data: ArticleVo{
-			Id:         art.Id,
-			Title:      art.Title,
+			Id:    art.Id,
+			Title: art.Title,
+
 			Content:    art.Content,
 			AuthorId:   art.Author.Id,
 			AuthorName: art.Author.Name,
-			ReadCnt:    intr.ReadCnt,
-			CollectCnt: intr.CollectCnt,
-			LikeCnt:    intr.LikeCnt,
-			Liked:      intr.Liked,
-			Collected:  intr.Collected,
+			ReadCnt:    intr.Intr.ReadCnt,
+			CollectCnt: intr.Intr.CollectCnt,
+			LikeCnt:    intr.Intr.LikeCnt,
+			Liked:      intr.Intr.Liked,
+			Collected:  intr.Intr.Collected,
 
 			Status: art.Status.ToUint8(),
 			Ctime:  art.Ctime.Format(time.DateTime),
@@ -276,10 +278,14 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req ArticleLikeReq, uc jwt.UserC
 	var err error
 	if req.Like {
 		// 点赞
-		err = h.intrSvc.Like(ctx, h.biz, req.Id, uc.Uid)
+		_, err = h.intrSvc.Like(ctx, &intrv1.LikeRequest{
+			Biz: h.biz, BizId: req.Id, Uid: uc.Uid,
+		})
 	} else {
 		// 取消点赞
-		err = h.intrSvc.CancelLike(ctx, h.biz, req.Id, uc.Uid)
+		_, err = h.intrSvc.CancelLike(ctx, &intrv1.CancelLikeRequest{
+			Biz: h.biz, BizId: req.Id, Uid: uc.Uid,
+		})
 	}
 	if err != nil {
 		return ginx.Result{
@@ -293,7 +299,9 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req ArticleLikeReq, uc jwt.UserC
 }
 
 func (h *ArticleHandler) Collect(ctx *gin.Context, req ArticleCollectReq, uc jwt.UserClaims) (ginx.Result, error) {
-	err := h.intrSvc.Collect(ctx, h.biz, req.Id, req.Cid, uc.Uid)
+	_, err := h.intrSvc.Collect(ctx, &intrv1.CollectRequest{
+		Biz: h.biz, BizId: req.Id, Cid: req.Cid, Uid: uc.Uid,
+	})
 	if err != nil {
 		return ginx.Result{
 			Msg:  "系统错误",

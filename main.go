@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	InitViperV1()
+	InitViperWatch()
 	InitLogger()
 	tpCancel := ioc.InitOTEL()
 	defer func() {
@@ -83,9 +83,6 @@ func InitViperWatch() {
 	viper.SetConfigType("yaml")
 	viper.SetConfigFile(*cfile)
 	viper.WatchConfig()
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		log.Println(viper.GetString("test.key"))
-	})
 	// 读取配置
 	err := viper.ReadInConfig()
 	if err != nil {
