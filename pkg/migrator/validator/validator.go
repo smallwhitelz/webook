@@ -27,6 +27,16 @@ type Validator[T migrator.Entity] struct {
 	fromBase      func(ctx context.Context, offset int) (T, error)
 }
 
+func NewValidator[T migrator.Entity](
+	base *gorm.DB,
+	target *gorm.DB, l logger.V1, producer events.Producer, direction string) *Validator[T] {
+	res := &Validator[T]{
+		base: base, target: target,
+		l: l, producer: producer, direction: direction, batchSize: 100}
+	res.fromBase = res.fullFromBase
+	return res
+}
+
 func (v *Validator[T]) Validate(ctx context.Context) error {
 	// 同步写法
 	//err := v.validateBaseToTarget(ctx)
@@ -34,7 +44,6 @@ func (v *Validator[T]) Validate(ctx context.Context) error {
 	//	return err
 	//}
 	//return v.validateTargetToBase(ctx)
-
 	// 异步写法
 	var eg errgroup.Group
 	eg.Go(func() error {
@@ -50,6 +59,9 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
 	offset := 0
 	for {
 		src, err := v.fromBase(ctx, offset)
+		if err == context.DeadlineExceeded || err == context.Canceled {
+			return nil
+		}
 		if err == gorm.ErrRecordNotFound {
 			// 增量校验要考虑一直运行
 			// 这个就是没有数据
@@ -99,6 +111,16 @@ func (v *Validator[T]) Incr() *Validator[T] {
 	return v
 }
 
+func (v *Validator[T]) Utime(t int64) *Validator[T] {
+	v.utime = t
+	return v
+}
+
+func (v *Validator[T]) SleepInterval(interval time.Duration) *Validator[T] {
+	v.sleepInterval = interval
+	return v
+}
+
 func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
@@ -122,6 +144,9 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 		var ts []T
 		err := v.target.WithContext(ctx).Select("id").Order("id").
 			Offset(offset).Limit(v.batchSize).Find(&ts).Error
+		if err == context.DeadlineExceeded || err == context.Canceled {
+			return nil
+		}
 		if err == gorm.ErrRecordNotFound || len(ts) == 0 {
 			if v.sleepInterval <= 0 {
 				return nil
@@ -180,8 +205,10 @@ func (v *Validator[T]) notify(id int64, typ string) {
 		Type:      typ,
 		Direction: v.direction,
 	})
-	v.l.Error("发送不一致消息失败",
-		logger.Error(err),
-		logger.String("type", typ),
-		logger.Int64("id", id))
+	if err != nil {
+		v.l.Error("发送不一致消息失败",
+			logger.Error(err),
+			logger.String("type", typ),
+			logger.Int64("id", id))
+	}
 }

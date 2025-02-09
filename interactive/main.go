@@ -18,7 +18,14 @@ func main() {
 			panic(err)
 		}
 	}
-	app.server.Serve()
+	go func() {
+		err1 := app.adminServer.Start()
+		panic(err1)
+	}()
+	err := app.server.Serve()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func initPrometheus() {

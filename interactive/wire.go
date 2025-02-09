@@ -13,7 +13,16 @@ import (
 	service2 "webook/interactive/service"
 )
 
-var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger, ioc.InitSaramaClient)
+var thirdPartySet = wire.NewSet(
+	ioc.InitSrcDB,
+	ioc.InitDstDB,
+	ioc.InitDoubleWritePool,
+	ioc.InitBizDB,
+	ioc.InitLogger,
+	ioc.InitSaramaClient,
+	ioc.InitSaramaSyncProducer,
+	ioc.InitRedis,
+)
 
 var interactiveSvcSet = wire.NewSet(dao2.NewGORMInteractiveDAO,
 	cache2.NewInteractiveRedisCache,
@@ -27,8 +36,11 @@ func InitApp() *App {
 		interactiveSvcSet,
 		grpc.NewInteractiveServiceServer,
 		events.NewInteractiveReadEventConsumer,
+		ioc.InitInteractiveProducer,
+		ioc.InitFixerConsumer,
 		ioc.InitConsumers,
 		ioc.NewGrpcxServer,
+		ioc.InitGinxServer,
 		wire.Struct(new(App), "*"),
 	)
 	return new(App)
