@@ -19,6 +19,12 @@ type Validator[T migrator.Entity] struct {
 	producer  events.Producer
 	direction string
 	batchSize int
+	utime     int64
+
+	// <=0 就认为中断
+	// >0 就认为睡眠
+	sleepInterval time.Duration
+	fromBase      func(ctx context.Context, offset int) (T, error)
 }
 
 func (v *Validator[T]) Validate(ctx context.Context) error {
@@ -41,18 +47,22 @@ func (v *Validator[T]) Validate(ctx context.Context) error {
 }
 
 func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
-	offset := -1
+	offset := 0
 	for {
-		offset++
-		var src T
-		err := v.base.WithContext(ctx).Order("id").Offset(offset).First(&src).Error
+		src, err := v.fromBase(ctx, offset)
 		if err == gorm.ErrRecordNotFound {
+			// 增量校验要考虑一直运行
 			// 这个就是没有数据
-			return nil
+			if v.sleepInterval <= 0 {
+				return nil
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 		}
 		if err != nil {
 			// 查询出错
 			v.l.Error("base -> target 查询 base 失败", logger.Error(err))
+			offset++
 			continue
 		}
 		// 这边就是正常情况
@@ -75,21 +85,53 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
 				logger.Int64("id", src.ID()),
 				logger.Error(err))
 		}
+		offset++
 	}
 }
 
+func (v *Validator[T]) Full() *Validator[T] {
+	v.fromBase = v.fullFromBase
+	return v
+}
+
+func (v *Validator[T]) Incr() *Validator[T] {
+	v.fromBase = v.incrFromBase
+	return v
+}
+
+func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	err := v.base.WithContext(dbCtx).Order("id").Offset(offset).First(&src).Error
+	return src, err
+}
+
+func (v *Validator[T]) incrFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	err := v.base.WithContext(dbCtx).Where("utime > ?", v.utime).
+		Order("utime").Offset(offset).First(&src).Error
+	return src, err
+}
+
 func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
-	offset := -v.batchSize
+	offset := 0
 	for {
-		offset += v.batchSize
 		var ts []T
 		err := v.target.WithContext(ctx).Select("id").Order("id").
 			Offset(offset).Limit(v.batchSize).Find(&ts).Error
 		if err == gorm.ErrRecordNotFound || len(ts) == 0 {
-			return nil
+			if v.sleepInterval <= 0 {
+				return nil
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 		}
 		if err != nil {
 			v.l.Error("target -> base 查询 target 失败", logger.Error(err))
+			offset += len(ts)
 			continue
 		}
 		// 在这里有数据
@@ -105,6 +147,7 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 		}
 		if err != nil {
 			v.l.Error("target -> base 查询 base 失败", logger.Error(err))
+			offset += len(ts)
 			continue
 		}
 		// 找差集，diff里面就是target有，但是base没有的
@@ -114,8 +157,12 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 		v.notifyBaseMissing(diff)
 		// 说明也没有数据了
 		if len(ts) < v.batchSize {
-			return nil
+			if v.sleepInterval <= 0 {
+				return nil
+			}
+			time.Sleep(v.sleepInterval)
 		}
+		offset += len(ts)
 	}
 }
 
