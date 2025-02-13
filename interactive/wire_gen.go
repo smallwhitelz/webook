@@ -35,7 +35,7 @@ func InitApp() *App {
 	v := ioc.InitConsumers(interactiveReadEventConsumer, consumer)
 	interactiveService := service.NewInteractiveService(interactiveRepository)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
-	server := ioc.NewGrpcxServer(interactiveServiceServer)
+	server := ioc.NewGrpcxServer(interactiveServiceServer, v1)
 	syncProducer := ioc.InitSaramaSyncProducer(client)
 	producer := ioc.InitInteractiveProducer(syncProducer)
 	ginxServer := ioc.InitGinxServer(v1, srcDB, dstDB, doubleWritePool, producer)

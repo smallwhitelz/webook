@@ -38,12 +38,13 @@ func (b *BatchRankingService) GetTopN(ctx context.Context) ([]domain.Article, er
 	return b.repo.GetTopN(ctx)
 }
 
-func NewBatchRankingService(intrSvc intrv1.InteractiveServiceClient, artSvc ArticleService) RankingService {
+func NewBatchRankingService(intrSvc intrv1.InteractiveServiceClient, artSvc ArticleService, repo repository.RankingRepository) RankingService {
 	return &BatchRankingService{
 		intrSvc:   intrSvc,
 		artSvc:    artSvc,
 		batchSize: 100,
 		n:         100,
+		repo:      repo,
 		scoreFunc: func(likeCnt int64, utime time.Time) float64 {
 			// 时间
 			duration := time.Since(utime).Seconds()

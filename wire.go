@@ -4,7 +4,6 @@ package main
 
 import (
 	"github.com/google/wire"
-	"webook/interactive/events"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
@@ -38,17 +37,19 @@ func InitWebServer() *App {
 		ioc.InitSaramaClient,
 		ioc.InitSyncProducer,
 		ioc.InitRlockClient,
+		ioc.InitEtcd,
 		// dao部分
 		dao.NewUserDao,
 		dao.NewArticleGORMDAO,
 
-		interactiveSvcSet,
-		ioc.InitIntrClient,
+		//interactiveSvcSet,
+		//ioc.InitIntrClient,
+		ioc.InitIntrClientV1,
 		rankingSvcSet,
 		ioc.InitRankingJob,
 		ioc.InitJobs,
 		article.NewSaramaSyncProducer,
-		events.NewInteractiveReadEventConsumer,
+		//events.NewInteractiveReadEventConsumer,
 		ioc.InitConsumers,
 
 		// cache部分
