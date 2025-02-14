@@ -46,7 +46,7 @@ func (c *CachedArticleRepository) ListPub(ctx context.Context, start time.Time, 
 
 func (c *CachedArticleRepository) GetPubById(ctx context.Context, id int64) (domain.Article, error) {
 	res, err := c.cache.GetPub(ctx, id)
-	if err != nil {
+	if err == nil {
 		return res, err
 	}
 	art, err := c.dao.GetPubById(ctx, id)

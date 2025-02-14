@@ -56,7 +56,7 @@ func (i *InteractiveReadEventConsumer) BatchConsume(msgs []*sarama.ConsumerMessa
 		bizs = append(bizs, "article")
 		bizIds = append(bizIds, evt.Aid)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
 	defer cancel()
 	return i.repo.BatchIncrReadCnt(ctx, bizs, bizIds)
 }
