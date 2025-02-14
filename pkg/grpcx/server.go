@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 	"webook/pkg/logger"
-	"webook/pkg/netx"
 )
 
 type Server struct {
@@ -51,7 +50,7 @@ func (s *Server) register() error {
 	}
 	s.client = client
 	em, err := endpoints.NewManager(client, "service/"+s.Name)
-	addr := netx.GetOutboundIP() + ":" + strconv.Itoa(s.Port)
+	addr := "127.0.0.1:" + strconv.Itoa(s.Port)
 	key := "service/" + s.Name + "/" + addr
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

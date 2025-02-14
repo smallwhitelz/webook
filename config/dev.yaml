@@ -17,4 +17,4 @@ etcd:
 grpc:
   client:
     intr:
-      addr: "etcd:///interactive"
+      addr: "etcd:///service/interactive"
