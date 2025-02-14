@@ -17,4 +17,4 @@ etcd:
 grpc:
   client:
     intr:
-      addr: "192.168.255.10:8090"
+      addr: "etcd:///interactive"
