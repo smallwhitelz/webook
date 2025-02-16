@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option go_package = "./grpc";
+
+message User {
+  int64 id = 1;
+  string name = 2;
+
+  string avatar = 4;
+
+  map<string,string> attributes = 5;
+  repeated string nicknames = 6;
+  optional int32 age = 7;
+
+  Address address = 8;
+
+  // 两者中只能有一个有值，尽量不要用
+  oneof contacts {
+    string email = 9;
+    string phone = 10;
+  }
+
+  Gender gender = 11;
+}
+
+message Address {
+  string province = 1;
+  string city = 3;
+}
+
+enum Gender {
+  UNKNOWN = 0;
+  MALE = 1;
+  FEMALE = 2;
+}
+
+service UserService {
+  rpc GetByID(GeyByIDRequest) returns(GeyByIDResponse);
+}
+
+message GeyByIDRequest{
+  int64 id = 1;
+}
+
+message GeyByIDResponse{
+  User user = 1;
+}
