@@ -9,6 +9,7 @@ import (
 	"net"
 	"testing"
 	"time"
+	"webook/pkg/grpcx/interceptor/trace"
 )
 
 type InterceptorTestSuite struct {
@@ -16,8 +17,13 @@ type InterceptorTestSuite struct {
 }
 
 func (s *InterceptorTestSuite) TestClient() {
+	initZipkin()
 	t := s.T()
-	cc, err := grpc.Dial("localhost:8090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	cc, err := grpc.Dial("localhost:8090",
+		grpc.WithChainUnaryInterceptor(
+			trace.NewOTELInterceptorBuilder("client_test", nil, nil).
+				BuildUnaryClientInterceptor()),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	client := NewUserServiceClient(cc)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -26,12 +32,16 @@ func (s *InterceptorTestSuite) TestClient() {
 	resp, err := client.GetByID(ctx, &GeyByIDRequest{Id: 123})
 	require.NoError(t, err)
 	t.Log(resp)
+	time.Sleep(time.Second)
 }
 
 func (s *InterceptorTestSuite) TestServer() {
+	initZipkin()
 	t := s.T()
-	server := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		NewLogInterceptor(t)))
+	server := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(NewLogInterceptor(t),
+			trace.NewOTELInterceptorBuilder("server_test", nil, nil).
+				BuildUnaryServerInterceptor()))
 	RegisterUserServiceServer(server, &Server{
 		Name: "interceptor_test",
 	})
