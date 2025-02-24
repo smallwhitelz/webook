@@ -15,6 +15,7 @@ require (
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-kratos/aegis v0.2.0
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20250210091908-15168b5a1b7d
 	github.com/go-kratos/kratos/v2 v2.8.3
 	github.com/go-sql-driver/mysql v1.8.1
@@ -33,6 +34,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.1072
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.1072
+	github.com/wechatpay-apiv3/wechatpay-go v0.2.20
 	github.com/zeromicro/go-zero v1.8.0
 	go.etcd.io/etcd/client/v3 v3.5.15
 	go.mongodb.org/mongo-driver v1.17.2
@@ -81,7 +83,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gin-contrib/sse v1.0.0 // indirect
-	github.com/go-kratos/aegis v0.2.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
