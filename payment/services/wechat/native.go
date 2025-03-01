@@ -80,6 +80,18 @@ func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (
 	return *resp.CodeUrl, err
 }
 
+func (n *NativePaymentService) SyncWechatInfo(ctx context.Context, bizTradeNO string) error {
+	// 对账
+	txn, _, err := n.svc.QueryOrderByOutTradeNo(ctx, native.QueryOrderByOutTradeNoRequest{
+		OutTradeNo: core.String(bizTradeNO),
+		Mchid:      core.String(n.mchID),
+	})
+	if err != nil {
+		return err
+	}
+	return n.updateByTxn(ctx, txn)
+}
+
 func (n *NativePaymentService) HandleCallback(ctx context.Context, txn *payments.Transaction) error {
 	return n.updateByTxn(ctx, txn)
 }
@@ -96,4 +108,8 @@ func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 		BizTradeNO: *txn.OutTradeNo,
 		Status:     status,
 	})
+}
+
+func (n *NativePaymentService) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {
+	return n.repo.FindExpiredPayment(ctx, offset, limit, t)
 }

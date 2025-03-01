@@ -33,8 +33,10 @@ func (p *PaymentGORMDAO) UpdateTxnIDAndStatus(ctx context.Context, bizTradeNo st
 }
 
 func (p *PaymentGORMDAO) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]Payment, error) {
-	//TODO implement me
-	panic("implement me")
+	var res []Payment
+	err := p.db.WithContext(ctx).Where("status = ? AND utime < ?",
+		uint8(domain.PaymentStatusInit), t.UnixMilli()).Offset(offset).Limit(limit).Find(&res).Error
+	return res, err
 }
 
 func (p *PaymentGORMDAO) GetPayment(ctx context.Context, bizTradeNO string) (Payment, error) {

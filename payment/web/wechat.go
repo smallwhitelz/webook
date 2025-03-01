@@ -38,8 +38,10 @@ func (h *WechatHandler) HandleNative(ctx *gin.Context) {
 		// 进来这里，绝大多数是黑客攻击
 		return
 	}
+	// 发送到Kafka
 	err = h.nativeSvc.HandleCallback(ctx, transaction)
 	if err != nil {
+		// 也可以在这里立刻触发对账
 		ctx.String(http.StatusInternalServerError, "系统异常")
 		// 说明处理回调失败了
 		h.l.Error("处理微信支付回调失败", logger.Error(err),
