@@ -45,3 +45,8 @@ type ArticleCollectReq struct {
 	Id  int64 `json:"id"`
 	Cid int64 `json:"cid"`
 }
+
+type ArticleRewardReq struct {
+	Id  int64 `json:"id"`
+	Amt int64 `json:"amt"`
+}

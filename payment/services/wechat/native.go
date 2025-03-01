@@ -113,3 +113,7 @@ func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 func (n *NativePaymentService) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {
 	return n.repo.FindExpiredPayment(ctx, offset, limit, t)
 }
+
+func (n *NativePaymentService) GetPayment(ctx context.Context, bizTradeId string) (domain.Payment, error) {
+	return n.repo.GetPayment(ctx, bizTradeId)
+}

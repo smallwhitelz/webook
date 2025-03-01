@@ -25,3 +25,7 @@ mock:
 	@mockgen -source=./pkg/limiter/types.go -package=limitermocks -destination=./pkg/limiter/mocks/limiter.mock.go
 	@mockgen -package=redismocks -destination=./internal/repository/cache/redismocks/cmd.mock.go github.com/redis/go-redis/v9 Cmdable
 	@go mod tidy
+
+.PHONY: grpc
+grpc:
+	@npx buf generate api/proto

@@ -1,0 +1,15 @@
+package repository
+
+import (
+	"context"
+	"webook/reward/domain"
+)
+
+type RewardRepository interface {
+	CreateReward(ctx context.Context, reward domain.Reward) (int64, error)
+
+	// GetCachedCodeURL 这两个方法的名字我们明确带上缓存的字眼
+	// 是希望调用者明白这个是我们缓存下来的，属于业务逻辑的一部分
+	GetCachedCodeURL(ctx context.Context, reward domain.Reward) (domain.CodeURL, error)
+	CachedCodeURL(ctx context.Context, cu domain.CodeURL, r domain.Reward) error
+}

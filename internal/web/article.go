@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 	intrv1 "webook/api/proto/gen/intr/v1"
+	rewardv1 "webook/api/proto/gen/reward/v1"
 	"webook/internal/domain"
 	"webook/internal/service"
 	"webook/internal/web/jwt"
@@ -19,6 +20,7 @@ import (
 type ArticleHandler struct {
 	svc     service.ArticleService
 	intrSvc intrv1.InteractiveServiceClient
+	reward  rewardv1.RewardServiceClient
 	l       logger.V1
 	biz     string
 }
@@ -49,6 +51,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	// 传入一个参数，true就是点赞，false就是不点赞
 	pub.POST("/like", ginx.WrapBodyAndClaims(h.Like))
 	pub.POST("/collect", ginx.WrapBodyAndClaims(h.Collect))
+	pub.POST("/reward", ginx.WrapBodyAndClaims[ArticleRewardReq, jwt.UserClaims](h.Reward))
 }
 
 // Edit 接收Article 输入，返回一个ID，文章ID
@@ -310,5 +313,39 @@ func (h *ArticleHandler) Collect(ctx *gin.Context, req ArticleCollectReq, uc jwt
 	}
 	return ginx.Result{
 		Msg: "OK",
+	}, nil
+}
+
+func (h *ArticleHandler) Reward(ctx *gin.Context, req ArticleRewardReq, uc jwt.UserClaims) (ginx.Result, error) {
+	// 如果你支持多种付款方式，在这里分发
+	// h.reward.wexin
+	// h.reward.Ali
+	artResp, err := h.svc.GetPubById(ctx, req.Id, uc.Uid)
+	if err != nil {
+		return ginx.Result{
+			Msg:  "系统错误",
+			Code: 5,
+		}, err
+	}
+	// 最关键的步骤，拿到二维码
+	resp, err := h.reward.PreReward(ctx, &rewardv1.PreRewardRequest{
+		Biz:       "article",
+		BizId:     artResp.Id,
+		BizName:   artResp.Title,
+		TargetUid: artResp.Author.Id,
+		Uid:       uc.Uid,
+		Amt:       req.Amt,
+	})
+	if err != nil {
+		return ginx.Result{
+			Msg:  "系统错误",
+			Code: 5,
+		}, err
+	}
+	return ginx.Result{
+		Data: map[string]any{
+			"codeURL": resp.CodeUrl,
+			"rid":     resp.Rid,
+		},
 	}, nil
 }

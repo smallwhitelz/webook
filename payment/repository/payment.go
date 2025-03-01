@@ -36,8 +36,8 @@ func (p *paymentRepository) FindExpiredPayment(ctx context.Context, offset int, 
 }
 
 func (p *paymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
-	//TODO implement me
-	panic("implement me")
+	r, err := p.dao.GetPayment(ctx, bizTradeNO)
+	return p.toDomain(r), err
 }
 
 func (p *paymentRepository) toEntity(pmt domain.Payment) dao.Payment {

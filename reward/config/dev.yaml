@@ -1,0 +1,16 @@
+db:
+  dsn: "root:root@tcp(43.154.97.245:13316)/webook_reward"
+
+grpc:
+  server:
+    port: 8099
+    etcdTTL: 60
+  client:
+    payment:
+      target: "etcd:///service/payment"
+    account:
+      target: "etcd:///service/account"
+
+etcd:
+  endpoints:
+    - "43.154.97.245:12379"

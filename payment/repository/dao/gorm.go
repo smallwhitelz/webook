@@ -40,6 +40,7 @@ func (p *PaymentGORMDAO) FindExpiredPayment(ctx context.Context, offset int, lim
 }
 
 func (p *PaymentGORMDAO) GetPayment(ctx context.Context, bizTradeNO string) (Payment, error) {
-	//TODO implement me
-	panic("implement me")
+	var res Payment
+	err := p.db.WithContext(ctx).Where("biz_trade_no = ?", bizTradeNO).First(&res).Error
+	return res, err
 }
