@@ -9,6 +9,7 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
 	"time"
 	"webook/payment/domain"
+	"webook/payment/events"
 	"webook/payment/repository"
 	"webook/pkg/logger"
 )
@@ -21,8 +22,9 @@ type NativePaymentService struct {
 	// 支付通知 回调的URL
 	notifyURL string
 	// 自己的支付记录
-	repo repository.PaymentRepository
-	svc  *native.NativeApiService
+	repo     repository.PaymentRepository
+	svc      *native.NativeApiService
+	producer events.Producer
 
 	l logger.V1
 
@@ -102,12 +104,28 @@ func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 		return fmt.Errorf("%w, 微信的状态是 %s", errUnknownTransactionState, *txn.TradeState)
 	}
 	// 很显然，就是更新一下我们本地数据里面payment的状态
-	return n.repo.UpdatePayment(ctx, domain.Payment{
+	err := n.repo.UpdatePayment(ctx, domain.Payment{
 		// 微信过来的 Transaction Id
 		TxnID:      *txn.TransactionId,
 		BizTradeNO: *txn.OutTradeNo,
 		Status:     status,
 	})
+	if err != nil {
+		return err
+	}
+	// 就要通知业务方
+	// 有些人的系统，会根据支付状态来决定要不要通知
+	// 我要是发消息失败了怎么办？
+	// 站在业务的角度，你是不是至少应该发成功一次
+	err1 := n.producer.ProducePaymentEvent(ctx, events.PaymentEvent{
+		BizTradeNo: *txn.OutTradeNo,
+		Status:     status.AsUint8(),
+	})
+	if err1 != nil {
+		n.l.Error("发送支付事件失败", logger.Error(err1),
+			logger.String("biz_trade_no", *txn.OutTradeNo))
+	}
+	return nil
 }
 
 func (n *NativePaymentService) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {

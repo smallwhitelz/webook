@@ -12,6 +12,18 @@ type rewardRepository struct {
 	cache cache.RewardCache
 }
 
+func (repo *rewardRepository) GetReward(ctx context.Context, rid int64) (domain.Reward, error) {
+	r, err := repo.dao.GetReward(ctx, rid)
+	if err != nil {
+		return domain.Reward{}, err
+	}
+	return repo.toDomain(r), nil
+}
+
+func (repo *rewardRepository) UpdateStatus(ctx context.Context, rid int64, status domain.RewardStatus) error {
+	return repo.dao.UpdateStatus(ctx, rid, status.AsUint8())
+}
+
 func (repo *rewardRepository) CachedCodeURL(ctx context.Context, cu domain.CodeURL, r domain.Reward) error {
 	return repo.cache.CachedCodeURL(ctx, cu, r)
 }
