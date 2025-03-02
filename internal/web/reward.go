@@ -37,6 +37,7 @@ func (h *RewardHandler) GetReward(ctx *gin.Context, req GetRewardReq, claims jwt
 		}, err
 	}
 	return ginx.Result{
-		Data: resp.
-	}
+		// 暂时也就是只需要状态
+		Data: resp.Status.String(),
+	}, nil
 }

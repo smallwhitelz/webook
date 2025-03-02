@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	accountv1 "webook/api/proto/gen/account/v1"
 	pmtv1 "webook/api/proto/gen/payment/v1"
 	"webook/pkg/logger"
 	"webook/reward/domain"
@@ -14,6 +15,7 @@ import (
 
 type WechatNativeRewardService struct {
 	client pmtv1.WechatPaymentServiceClient
+	acli   accountv1.AccountServiceClient
 	repo   repository.RewardRepository
 	l      logger.V1
 }
@@ -98,7 +100,46 @@ func (w *WechatNativeRewardService) GetReward(ctx context.Context, rid, uid int6
 
 func (w *WechatNativeRewardService) UpdateReward(ctx context.Context, bizTradeNO string, status domain.RewardStatus) error {
 	rid := w.toRid(bizTradeNO)
-	return w.repo.UpdateStatus(ctx, rid, status)
+	err := w.repo.UpdateStatus(ctx, rid, status)
+	if err != nil {
+		return err
+	}
+	// 完成了支付，准备入账
+	if status == domain.RewardStatusPayed {
+		r, err := w.repo.GetReward(ctx, rid)
+		if err != nil {
+			return err
+		}
+		// webook抽成
+		weAmt := int64(float64(r.Amt) * 0.1)
+		_, err = w.acli.Credit(ctx, &accountv1.CreditRequest{
+			Biz:   "reward",
+			BizId: rid,
+			Items: []*accountv1.CreditItem{
+				{
+					AccountType: accountv1.AccountType_AccountTypeReward,
+					// 虽然可能为0，但是也要记录出来
+					Amt:      weAmt,
+					Currency: "CNY",
+				},
+				{
+					Account:     r.Uid,
+					Uid:         r.Uid,
+					AccountType: accountv1.AccountType_AccountTypeReward,
+					Amt:         r.Amt - weAmt,
+					Currency:    "CNY",
+				},
+			},
+		})
+		if err != nil {
+			w.l.Error("入账失败，需要修复数据",
+				logger.Error(err),
+				logger.String("biz_trade_no", bizTradeNO))
+			// 做好监控和告警
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *WechatNativeRewardService) bizTradeNO(rid int64) string {
