@@ -25,7 +25,8 @@ func (i *InteractiveReadEventConsumer) Start() error {
 		return err
 	}
 	go func() {
-		er := cg.Consume(context.Background(), []string{TopicReadEvent}, samarax.NewBatchHandler[ReadEvent](i.l, i.BatchConsume))
+		er := cg.Consume(context.Background(), []string{TopicReadEvent},
+			samarax.NewBatchHandler[ReadEvent](i.l, i.BatchConsume))
 		if er != nil {
 			i.l.Error("退出消费", logger.Error(er))
 		}
@@ -56,7 +57,7 @@ func (i *InteractiveReadEventConsumer) BatchConsume(msgs []*sarama.ConsumerMessa
 		bizs = append(bizs, "article")
 		bizIds = append(bizIds, evt.Aid)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return i.repo.BatchIncrReadCnt(ctx, bizs, bizIds)
 }
