@@ -10,6 +10,16 @@ type SaramaProducer struct {
 	p sarama.SyncProducer
 }
 
+func NewSaramaProducer(client sarama.Client) (*SaramaProducer, error) {
+	p, err := sarama.NewSyncProducerFromClient(client)
+	if err != nil {
+		return nil, err
+	}
+	return &SaramaProducer{
+		p,
+	}, nil
+}
+
 func (s *SaramaProducer) ProducePaymentEvent(ctx context.Context, evt PaymentEvent) error {
 	val, err := json.Marshal(evt)
 	if err != nil {

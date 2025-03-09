@@ -1,0 +1,21 @@
+http:
+  addr: ":8070"
+
+db:
+  dsn: "root:root@tcp(43.154.97.245:13316)/webook_payment"
+
+kafka:
+  addrs:
+    - "43.154.97.245:9094"
+
+etcd:
+  username: "root"
+  password: "1234"
+  endpoints:
+    - "43.154.97.245:12379"
+
+grpc:
+  server:
+    port: 8098
+    etcdAddr: "43.154.97.245:12379"
+    etcdTTL: 60

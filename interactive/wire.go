@@ -39,6 +39,7 @@ func InitApp() *App {
 		ioc.InitInteractiveProducer,
 		ioc.InitFixerConsumer,
 		ioc.InitConsumers,
+		ioc.InitEtcdClient,
 		ioc.NewGrpcxServer,
 		ioc.InitGinxServer,
 		wire.Struct(new(App), "*"),

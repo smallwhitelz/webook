@@ -14,13 +14,15 @@ kafka:
   addr:
     - "43.154.97.245:9094"
 
+etcd:
+  username: "root"
+  password: "1234"
+  addr: "43.154.97.245:12379"
+
 grpc:
   server:
-    etcdAddr: "43.154.97.245:12379"
     port: 8090
     name: "interactive"
-    username: "root"
-    password: "1234"
 
 migrator:
   http:

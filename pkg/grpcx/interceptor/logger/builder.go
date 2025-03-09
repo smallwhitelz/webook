@@ -17,6 +17,10 @@ type InterceptorBuilder struct {
 	interceptor.Builder
 }
 
+func NewInterceptorBuilder(l logger.V1) *InterceptorBuilder {
+	return &InterceptorBuilder{l: l}
+}
+
 func (b *InterceptorBuilder) BuildServerUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		start := time.Now()

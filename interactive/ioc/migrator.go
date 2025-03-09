@@ -22,7 +22,7 @@ func InitGinxServer(l logger.V1,
 	producer events.Producer) *ginx.Server {
 	engine := gin.Default()
 	group := engine.Group("/migrator")
-	ginx.InitCount(prometheus2.CounterOpts{
+	ginx.InitCounter(prometheus2.CounterOpts{
 		Namespace: "geektime_daming",
 		Subsystem: "webook_intr_admin",
 		Name:      "biz_code",

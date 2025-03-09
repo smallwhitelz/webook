@@ -47,7 +47,7 @@ func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.V1
 		Name:      "gin_http",
 		Help:      "这是一个统计 GIN 的http接口数据",
 	}
-	ginx.InitCount(prometheus2.CounterOpts{
+	ginx.InitCounter(prometheus2.CounterOpts{
 		Namespace: "geektime_zl",
 		Subsystem: "webook",
 		Name:      "biz_code",
@@ -69,7 +69,8 @@ func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.V1
 				return strings.Contains(origin, "your_company.com")
 			},
 			MaxAge: 12 * time.Hour,
-		}), func(ctx *gin.Context) {
+		}),
+		func(ctx *gin.Context) {
 			println("这是我的middleware")
 		},
 		pb.BuildResponseTime(),

@@ -12,7 +12,7 @@ var L logger.V1 = logger.NewNopLogger()
 
 var vector *prometheus.CounterVec
 
-func InitCount(opt prometheus.CounterOpts) {
+func InitCounter(opt prometheus.CounterOpts) {
 	vector = prometheus.NewCounterVec(opt, []string{"code"})
 	prometheus.MustRegister(vector)
 }

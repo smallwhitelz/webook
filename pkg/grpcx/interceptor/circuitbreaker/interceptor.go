@@ -12,6 +12,10 @@ type InterceptorBuilder struct {
 	breaker circuitbreaker.CircuitBreaker
 }
 
+func NewInterceptorBuilder(breaker circuitbreaker.CircuitBreaker) *InterceptorBuilder {
+	return &InterceptorBuilder{breaker: breaker}
+}
+
 func (b *InterceptorBuilder) BuildServerUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		err = b.breaker.Allow()
