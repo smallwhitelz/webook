@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"gorm.io/gorm"
 	"time"
@@ -154,7 +153,6 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		fmt.Println("------------", art.Author.Id)
 		user, er := c.userRepo.FindById(ctx, art.Author.Id)
 
 		if er != nil {
