@@ -10,6 +10,8 @@ type CommentDAO interface {
 	Insert(ctx context.Context, u Comment) error
 	// Delete 删除本节点和其对应的子节点
 	Delete(ctx context.Context, comment Comment) error
+	FindByBiz(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]Comment, error)
+	FindRepliesByPid(ctx context.Context, pid int64, offset, limit int) ([]Comment, error)
 }
 
 type Comment struct {
@@ -45,6 +47,22 @@ type GORMCommentDAO struct {
 	db *gorm.DB
 }
 
+// FindRepliesByPid 查找评论的直接评论
+func (c *GORMCommentDAO) FindRepliesByPid(ctx context.Context, pid int64, offset, limit int) ([]Comment, error) {
+	var res []Comment
+	err := c.db.WithContext(ctx).Where("pid = ?", pid).
+		Order("id DESC").
+		Offset(offset).Limit(limit).Find(&res).Error
+	return res, err
+}
+
+func (c *GORMCommentDAO) FindByBiz(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]Comment, error) {
+	var res []Comment
+	err := c.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND id < ? AND pid IS NULL", biz, bizId, minId).
+		Limit(int(limit)).Find(&res).Error
+	return res, err
+}
+
 func (c *GORMCommentDAO) Insert(ctx context.Context, u Comment) error {
 	return c.db.
 		WithContext(ctx).
@@ -56,4 +74,8 @@ func (c *GORMCommentDAO) Delete(ctx context.Context, comment Comment) error {
 	return c.db.WithContext(ctx).Delete(&Comment{
 		Id: comment.Id,
 	}).Error
+}
+
+func NewGORMCommentDAO(db *gorm.DB) CommentDAO {
+	return &GORMCommentDAO{db: db}
 }

@@ -1,9 +1,9 @@
 package config
 
 import (
-	"log"
-	"os/user"
+	"fmt"
 	"testing"
+	"time"
 )
 
 type Req struct {
@@ -11,16 +11,8 @@ type Req struct {
 }
 
 func Test_normal(t *testing.T) {
-	//m := make(map[int]int)
-	//for i := 0; i < 100; i++ {
-	//	m[i] = i
-	//	fmt.Printf("i=%d, len(m)=%d\n", i, len(m))
-	//}
-
-	current, err := user.Current()
-	if err != nil {
-		log.Println(err)
-	}
-
-	log.Println(current.Username)
+	now := time.Now().UnixMilli()
+	fmt.Println(now)
+	milli := time.UnixMilli(now)
+	fmt.Println(milli)
 }

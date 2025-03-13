@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
+	"time"
 	"webook/interactive/domain"
 	"webook/interactive/repository/cache"
 	"webook/interactive/repository/dao"
@@ -124,10 +125,13 @@ func (c *CachedInteractiveRepository) BatchIncrReadCnt(ctx context.Context, biz 
 		return err
 	}
 	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
 		for i := 0; i < len(biz); i++ {
 			er := c.cache.IncrReadCntIfPresent(ctx, biz[i], bizId[i])
 			if er != nil {
 				// 记录日志
+				c.l.Error("更新redis阅读数失败", logger.Error(er))
 			}
 		}
 	}()
