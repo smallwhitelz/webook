@@ -1,0 +1,4 @@
+syntax = "proto3";
+
+package follow.v1;
+option go_package="./webook/follow/v1;followv1";
