@@ -10,6 +10,13 @@ type RateLimitComment struct {
 	CommentServiceServer
 }
 
+func (c *RateLimitComment) GetMoreReplies(ctx context.Context, request *commentv1.GetMoreRepliesRequest) (*commentv1.GetMoreRepliesResponse, error) {
+	if ctx.Value("limited") == "true" || ctx.Value("downgrade") == "true" {
+		return &commentv1.GetMoreRepliesResponse{}, errors.New("资源不足，功能关闭")
+	}
+	return c.CommentServiceServer.GetMoreReplies(ctx, request)
+}
+
 // GetCommentList 针对热门资源限流和非热门资源限流的一种方式
 func (c *RateLimitComment) GetCommentList(ctx context.Context, request *commentv1.CommentListRequest) (*commentv1.CommentListResponse, error) {
 	// 一般是通过热榜功能，提前计算放到redis里面，问一下redis就知道是不是热门资源

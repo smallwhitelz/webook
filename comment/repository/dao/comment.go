@@ -12,6 +12,7 @@ type CommentDAO interface {
 	Delete(ctx context.Context, comment Comment) error
 	FindByBiz(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]Comment, error)
 	FindRepliesByPid(ctx context.Context, pid int64, offset, limit int) ([]Comment, error)
+	FindRepliesByRid(ctx context.Context, rid int64, maxID int64, limit int64) ([]Comment, error)
 }
 
 type Comment struct {
@@ -45,6 +46,15 @@ func (*Comment) TableName() string {
 
 type GORMCommentDAO struct {
 	db *gorm.DB
+}
+
+func (c *GORMCommentDAO) FindRepliesByRid(ctx context.Context, rid int64, maxID int64, limit int64) ([]Comment, error) {
+	var res []Comment
+	err := c.db.WithContext(ctx).
+		Where("root_id = ? AND id > ?", rid, maxID).
+		Order("id ASC").
+		Limit(int(limit)).Find(&res).Error
+	return res, err
 }
 
 // FindRepliesByPid 查找评论的直接评论

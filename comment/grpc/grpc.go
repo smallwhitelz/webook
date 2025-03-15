@@ -41,8 +41,13 @@ func (c *CommentServiceServer) CreateComment(ctx context.Context, request *comme
 }
 
 func (c *CommentServiceServer) GetMoreReplies(ctx context.Context, request *commentv1.GetMoreRepliesRequest) (*commentv1.GetMoreRepliesResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	cs, err := c.svc.GetMoreReplies(ctx, request.Rid, request.MaxId, request.Limit)
+	if err != nil {
+		return nil, err
+	}
+	return &commentv1.GetMoreRepliesResponse{
+		Replies: c.toDTO(cs),
+	}, nil
 }
 
 func (c *CommentServiceServer) toDTO(domainComments []domain.Comment) []*commentv1.Comment {

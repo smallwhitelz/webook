@@ -15,11 +15,24 @@ type CommentRepository interface {
 	// DeleteComment 删除评论，删除本评论及其子评论
 	DeleteComment(ctx context.Context, comment domain.Comment) error
 	FindByBiz(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]domain.Comment, error)
+	GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error)
 }
 
 type CachedCommentRepo struct {
 	dao dao.CommentDAO
 	l   logger.V1
+}
+
+func (c *CachedCommentRepo) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {
+	cs, err := c.dao.FindRepliesByRid(ctx, rid, maxID, limit)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]domain.Comment, 0, len(cs))
+	for _, cm := range cs {
+		res = append(res, c.toDomain(cm))
+	}
+	return res, nil
 }
 
 func (c *CachedCommentRepo) FindByBiz(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]domain.Comment, error) {

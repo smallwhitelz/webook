@@ -14,11 +14,22 @@ type CommentService interface {
 	// DeleteComment 删除评论，删除本评论何其子评论
 	DeleteComment(ctx context.Context, id int64) error
 
+	// GetCommentList Comment的id为0 获取一级评论
+	// 按照 ID 倒序排序
 	GetCommentList(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]domain.Comment, error)
+	GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error)
 }
 
 type commentService struct {
 	repo repository.CommentRepository
+}
+
+func (c *commentService) GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error) {
+	return c.repo.GetMoreReplies(ctx, rid, maxID, limit)
+}
+
+func NewCommentService(repo repository.CommentRepository) CommentService {
+	return &commentService{repo: repo}
 }
 
 func (c *commentService) GetCommentList(ctx context.Context, biz string, bizId int64, minId int64, limit int64) ([]domain.Comment, error) {
