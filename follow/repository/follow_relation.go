@@ -15,12 +15,38 @@ type FollowRepository interface {
 	InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error
 	GetFollowee(ctx context.Context, follower int64, offset int64, limit int64) ([]domain.FollowRelation, error)
 	FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error)
+
+	// GetFollowStatics 获取某个人的关注、粉丝总数据
+	GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error)
 }
 
 type CachedRelationRepository struct {
 	dao   dao.FollowRelationDAO
 	cache cache.FollowCache
 	l     logger.V1
+}
+
+// GetFollowStatics 获得个人的关注了多少人，以及粉丝的数量
+func (c *CachedRelationRepository) GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error) {
+	res, err := c.cache.StaticsInfo(ctx, uid)
+	if err == nil {
+		return res, nil
+	}
+	// 没有我就去数据库查询
+	res.Followers, err = c.dao.CntFollow(ctx, uid)
+	if err != nil {
+		return domain.FollowStatics{}, err
+	}
+	res.Followees, err = c.dao.CntFollowee(ctx, uid)
+	if err != nil {
+		return domain.FollowStatics{}, err
+	}
+	err = c.cache.SetStaticsInfo(ctx, uid, res)
+	if err != nil {
+		// 记录日志
+		c.l.Error("缓存关注统计信息失败", logger.Error(err), logger.Int64("uid", uid))
+	}
+	return res, nil
 }
 
 func (c *CachedRelationRepository) FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error) {

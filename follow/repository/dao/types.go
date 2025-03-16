@@ -40,4 +40,35 @@ type FollowRelationDAO interface {
 	UpdateStatus(ctx context.Context, follower int64, followee int64, status uint8) error
 	FollowRelationList(ctx context.Context, follower int64, offset int64, limit int64) ([]FollowRelation, error)
 	FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error)
+	CntFollow(ctx context.Context, uid int64) (int64, error)
+	CntFollowee(ctx context.Context, uid int64) (int64, error)
+}
+
+// UserRelation 另外一种设计方案，但是不要这么做
+type UserRelation struct {
+	ID     int64 `gorm:"primaryKey,autoIncrement,column:id"`
+	Uid1   int64 `gorm:"column:uid1;type:int(11);not null;uniqueIndex:user_contact_index"`
+	Uid2   int64 `gorm:"column:uid2;type:int(11);not null;uniqueIndex:user_contact_index"`
+	Block  bool  // 拉黑
+	Mute   bool  // 屏蔽
+	Follow bool  // 关注
+}
+
+type UserRelationV1 struct {
+	ID   int64 `gorm:"primaryKey,autoIncrement,column:id"`
+	Uid1 int64 `gorm:"column:uid1;type:int(11);not null;uniqueIndex:user_contact_index"`
+	Uid2 int64 `gorm:"column:uid2;type:int(11);not null;uniqueIndex:user_contact_index"`
+	Type string
+}
+
+type FollowStatics struct {
+	ID  int64 `gorm:"primaryKey,autoIncrement,column:id"`
+	Uid int64 `gorm:"unique"`
+	// 有多少粉丝
+	Followers int64
+	// 关注了多少人
+	Followees int64
+
+	Utime int64
+	Ctime int64
 }

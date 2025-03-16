@@ -11,6 +11,24 @@ type GORMFollowRelationDAO struct {
 	db *gorm.DB
 }
 
+func (g *GORMFollowRelationDAO) CntFollow(ctx context.Context, uid int64) (int64, error) {
+	var res int64
+	err := g.db.WithContext(ctx).Select("count(follower)").
+		// 如果没有额外的索引，绝对是全表扫描
+		// 可以考虑 followee上建一个额外索引
+		Where("followee = ? AND status = ?", uid, FollowRelationStatusActive).Count(&res).Error
+	return res, err
+}
+
+func (g *GORMFollowRelationDAO) CntFollowee(ctx context.Context, uid int64) (int64, error) {
+	var res int64
+	err := g.db.WithContext(ctx).
+		Select("count(followee)").
+		// 可以命中索引，因为我们的索引是<follower,followee>
+		Where("follower = ? AND status = ?", uid, FollowRelationStatusActive).Count(&res).Error
+	return res, err
+}
+
 func (g *GORMFollowRelationDAO) FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error) {
 	var res FollowRelation
 	err := g.db.WithContext(ctx).
@@ -52,6 +70,8 @@ func (g *GORMFollowRelationDAO) CreateFollowRelation(ctx context.Context, f Foll
 			"utime":  now,
 		}),
 	}).Create(&f).Error
+	// 如果用了之前interactive的方式去实现关注、粉丝数量的功能，也就是如果初始化了FollowStatics这个表
+	// 在这里更新 FollowStatis 的计数（也是 upsert）可以用事务
 }
 
 func NewGORMFollowRelationDAO(db *gorm.DB) FollowRelationDAO {
