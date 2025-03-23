@@ -6,6 +6,8 @@ import (
 	"github.com/olivere/elastic/v7"
 )
 
+const TagIndexName = "tags_index"
+
 type TagESDAO struct {
 	client *elastic.Client
 }

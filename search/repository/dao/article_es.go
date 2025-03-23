@@ -10,7 +10,6 @@ import (
 )
 
 const ArticleIndexName = "article_index"
-const TagIndexName = "tags_index"
 
 type Article struct {
 	Id      int64    `json:"id"`
