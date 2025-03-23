@@ -54,6 +54,7 @@ require (
 	golang.org/x/sync v0.10.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.36.4
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 	gorm.io/plugin/opentelemetry v0.1.11
