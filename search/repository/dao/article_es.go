@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"encoding/json"
+	"github.com/ecodeclub/ekit/slice"
 	"github.com/olivere/elastic/v7"
 	"strconv"
 	"strings"
@@ -31,13 +32,16 @@ func (a *ArticleElasticDAO) InputArticle(ctx context.Context, article Article) e
 	return err
 }
 
-func (a *ArticleElasticDAO) Search(ctx context.Context, keywords []string) ([]Article, error) {
+func (a *ArticleElasticDAO) Search(ctx context.Context, artIds []int64, keywords []string) ([]Article, error) {
 	queryString := strings.Join(keywords, " ")
 	// 2=>用户可见的文章
 	status := elastic.NewTermsQuery("status", 2)
 	title := elastic.NewMatchQuery("title", queryString)
 	content := elastic.NewMatchQuery("content", queryString)
-	or := elastic.NewBoolQuery().Should(title, content)
+	tag := elastic.NewTermsQuery("id", slice.Map(artIds, func(idx int, src int64) any {
+		return src
+	})).Boost(2)
+	or := elastic.NewBoolQuery().Should(title, content, tag)
 	query := elastic.NewBoolQuery().Must(status, or)
 	resp, err := a.client.Search(ArticleIndexName).Query(query).Do(ctx)
 	if err != nil {

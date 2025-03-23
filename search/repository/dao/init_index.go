@@ -13,6 +13,8 @@ var (
 	userIndex string
 	//go:embed article_index.json
 	articleIndex string
+	//go:embed tags_index.json
+	tagIndex string
 )
 
 func InitES(client *elastic.Client) error {
@@ -27,7 +29,7 @@ func InitES(client *elastic.Client) error {
 		return tryCreateIndex(ctx, client, ArticleIndexName, articleIndex)
 	})
 	eg.Go(func() error {
-		return tryCreateIndex(ctx, client, TagIndexName, articleIndex)
+		return tryCreateIndex(ctx, client, TagIndexName, tagIndex)
 	})
 
 	return eg.Wait()

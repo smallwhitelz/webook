@@ -15,6 +15,7 @@ type SyncService interface {
 type syncService struct {
 	userRepo    repository.UserRepository
 	articleRepo repository.ArticleRepository
+	anyRepo     repository.AnyRepository
 }
 
 func (s *syncService) InputArticle(ctx context.Context, article domain.Article) error {
@@ -26,8 +27,7 @@ func (s *syncService) InputUser(ctx context.Context, user domain.User) error {
 }
 
 func (s *syncService) InputAny(ctx context.Context, idxName, docID, data string) error {
-	//TODO implement me
-	panic("implement me")
+	return s.anyRepo.Input(ctx, idxName, docID, data)
 }
 
 func NewSyncService(userRepo repository.UserRepository, articleRepo repository.ArticleRepository) SyncService {

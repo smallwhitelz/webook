@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
 type Req struct {
@@ -11,8 +10,15 @@ type Req struct {
 }
 
 func Test_normal(t *testing.T) {
-	now := time.Now().UnixMilli()
-	fmt.Println(now)
-	milli := time.UnixMilli(now)
-	fmt.Println(milli)
+	a := make(map[int]bool)
+	a[1] = false
+	a[2] = true
+	a[3] = false
+	for k, v := range a {
+		if v {
+			a[10+k] = true
+			fmt.Println(v)
+		}
+	}
+	fmt.Println(a)
 }

@@ -14,3 +14,7 @@ type ArticleRepository interface {
 	InputArticle(ctx context.Context, article domain.Article) error
 	SearchArticle(ctx context.Context, uid int64, keywords []string) ([]domain.Article, error)
 }
+
+type AnyRepository interface {
+	Input(ctx context.Context, idxName string, docID string, data string) error
+}
