@@ -12,273 +12,172 @@ import (
 )
 
 type Validator[T migrator.Entity] struct {
-	// 数据迁移，肯定有
-	base      *gorm.DB
-	target    *gorm.DB
-	l         logger.V1
-	producer  events.Producer
-	direction string
+	baseValidator
 	batchSize int
 	utime     int64
-
-	// <=0 就认为中断
-	// >0 就认为睡眠
+	// 如果没有数据了，就睡眠
+	// 如果不是正数，那么就说明直接返回，结束这一次的循环
+	// 我很厌恶这种特殊值有特殊含义的做法，但是不得不搞
 	sleepInterval time.Duration
-	fromBase      func(ctx context.Context, offset int) (T, error)
 }
 
 func NewValidator[T migrator.Entity](
 	base *gorm.DB,
-	target *gorm.DB, l logger.V1, producer events.Producer, direction string) *Validator[T] {
-	res := &Validator[T]{
-		base: base, target: target,
-		l: l, producer: producer, direction: direction, batchSize: 100}
-	res.fromBase = res.fullFromBase
-	return res
+	target *gorm.DB,
+	direction string,
+	l logger.V1,
+	producer events.Producer,
+) *Validator[T] {
+	return &Validator[T]{
+		baseValidator: baseValidator{
+			base:      base,
+			target:    target,
+			direction: direction,
+			l:         l,
+			producer:  producer,
+		},
+		batchSize: 100,
+		// 默认是全量校验，并且数据没了就结束
+		sleepInterval: 0,
+	}
 }
 
+func (v *Validator[T]) Utime(utime int64) *Validator[T] {
+	v.utime = utime
+	return v
+}
+
+func (v *Validator[T]) SleepInterval(i time.Duration) *Validator[T] {
+	v.sleepInterval = i
+	return v
+}
+
+// Validate 执行校验。
+// 分成两步：
+// 1. from => to
 func (v *Validator[T]) Validate(ctx context.Context) error {
-	// 同步写法
-	//err := v.validateBaseToTarget(ctx)
-	//if err != nil {
-	//	return err
-	//}
-	//return v.validateTargetToBase(ctx)
-	// 异步写法
 	var eg errgroup.Group
 	eg.Go(func() error {
-		return v.validateBaseToTarget(ctx)
+		return v.baseToTarget(ctx)
 	})
 	eg.Go(func() error {
-		return v.validateTargetToBase(ctx)
+		return v.targetToBase(ctx)
 	})
 	return eg.Wait()
 }
 
-func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
+// baseToTarget 从 first 到 second 的验证
+func (v *Validator[T]) baseToTarget(ctx context.Context) error {
 	offset := 0
 	for {
-		src, err := v.fromBase(ctx, offset)
-		if err == context.DeadlineExceeded || err == context.Canceled {
-			return nil
-		}
-		if err == gorm.ErrRecordNotFound {
-			// 增量校验要考虑一直运行
-			// 这个就是没有数据
+		var src T
+		// 这里假定主键的规范都是叫做 id，基本上大部分公司都有这种规范
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		err := v.base.WithContext(dbCtx).
+			Order("id").
+			Where("utime >= ?", v.utime).
+			Offset(offset).First(&src).Error
+		cancel()
+		switch err {
+		case gorm.ErrRecordNotFound:
+			// 已经没有数据了
 			if v.sleepInterval <= 0 {
 				return nil
 			}
 			time.Sleep(v.sleepInterval)
 			continue
-		}
-		if err != nil {
-			// 查询出错
-			v.l.Error("base -> target 查询 base 失败", logger.Error(err))
-			offset++
-			continue
-		}
-		// 这边就是正常情况
-		var dst T
-		err = v.target.WithContext(ctx).Where("id = ?", src.ID()).First(&dst).Error
-		switch err {
-		case gorm.ErrRecordNotFound:
-			// target没有
-			// 丢一条消息到Kafka上
-			v.notify(src.ID(), events.InconsistentEventTypeTargetMissing)
+		case context.Canceled, context.DeadlineExceeded:
+			// 退出循环
+			return nil
 		case nil:
-			equal := src.CompareTo(dst)
-			if !equal {
-				// 要丢一条消息到Kafka上
-				v.notify(src.ID(), events.InconsistentEventTypeNEQ)
-			}
+			v.dstDiff(ctx, src)
 		default:
-			// 记录日志，然后继续
-			v.l.Error("base -> target 查询 target 失败",
-				logger.Int64("id", src.ID()),
-				logger.Error(err))
+			v.l.Error("src => dst 查询源表失败", logger.Error(err))
 		}
 		offset++
 	}
 }
 
-// baseToTarget 批量写法
-func (v *Validator[T]) baseToTargetV1(ctx context.Context) error {
-	offset := 0
-	const limit = 100
-	for {
-		var srcs []T
-		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
-		err := v.base.WithContext(dbCtx).Order("id").Where("utime > ?", v.utime).Offset(offset).
-			Limit(limit).Find(&srcs).Error
-		cancel()
-		switch err {
-		// 在 find 里面其实不会有这个错误
-		//case gorm.ErrRecordNotFound:
-		case context.DeadlineExceeded, context.Canceled:
-			// 超时你可以继续，也可以返回。一般超时都是因为数据库有了问题
-			return err
-		case nil:
-			if len(srcs) == 0 {
-				// 结束，没有数据
-				return nil
-			}
-			err := v.dstDiffV1(srcs)
-			if err != nil {
-				// 直接中断，你也可以考虑继续重试
-				return err
-			}
-		default:
-			v.l.Error("src => dst 查询源表失败", logger.Error(err))
-		}
-		if len(srcs) < limit {
-			// 没有数据了
-			return nil
-		}
-		offset += len(srcs)
-	}
-}
-
-func (v *Validator[T]) dstDiffV1(srcs []T) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	ids := slice.Map(srcs, func(idx int, src T) int64 {
-		return src.ID()
-	})
-	var dsts []T
-	err := v.target.WithContext(ctx).Where("id IN ?", ids).Find(&dsts).Error
-	// 让调用者来决定
-	if err != nil {
-		return err
-	}
-	dstMap := v.toMap(dsts)
-	for _, src := range srcs {
-		dst, ok := dstMap[src.ID()]
-		if !ok {
-			v.notify(src.ID(), events.InconsistentEventTypeTargetMissing)
-		}
-		if !src.CompareTo(dst) {
+func (v *Validator[T]) dstDiff(ctx context.Context, src T) {
+	var dst T
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	err := v.target.WithContext(dbCtx).
+		Where("id=?", src.ID()).First(&dst).Error
+	cancel()
+	// 这边要考虑不同的 error
+	switch err {
+	case gorm.ErrRecordNotFound:
+		v.notify(src.ID(), events.InconsistentEventTypeTargetMissing)
+	case nil:
+		// 查询到了数据
+		equal := src.CompareTo(dst)
+		if !equal {
 			v.notify(src.ID(), events.InconsistentEventTypeNEQ)
 		}
+	default:
+		v.l.Error("src => dst 查询目标表失败", logger.Error(err))
 	}
-	return nil
 }
 
-func (v *Validator[T]) toMap(data []T) map[int64]T {
-	res := make(map[int64]T, len(data))
-	for _, val := range data {
-		res[val.ID()] = val
-	}
-	return res
-}
-
-func (v *Validator[T]) Full() *Validator[T] {
-	v.fromBase = v.fullFromBase
-	return v
-}
-
-func (v *Validator[T]) Incr() *Validator[T] {
-	v.fromBase = v.incrFromBase
-	return v
-}
-
-func (v *Validator[T]) Utime(t int64) *Validator[T] {
-	v.utime = t
-	return v
-}
-
-func (v *Validator[T]) SleepInterval(interval time.Duration) *Validator[T] {
-	v.sleepInterval = interval
-	return v
-}
-
-func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
-	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	var src T
-	err := v.base.WithContext(dbCtx).Order("id").Offset(offset).First(&src).Error
-	return src, err
-}
-
-func (v *Validator[T]) incrFromBase(ctx context.Context, offset int) (T, error) {
-	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	var src T
-	err := v.base.WithContext(dbCtx).Where("utime > ?", v.utime).
-		Order("utime").Offset(offset).First(&src).Error
-	return src, err
-}
-
-func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
+// targetToBase 反过来，执行 target 到 base 的验证
+// 这是为了找出 dst 中多余的数据
+func (v *Validator[T]) targetToBase(ctx context.Context) error {
+	// 这个我们只需要找出 src 中不存在的 id 就可以了
 	offset := 0
 	for {
 		var ts []T
-		err := v.target.WithContext(ctx).Select("id").Order("id").
-			Offset(offset).Limit(v.batchSize).Find(&ts).Error
-		if err == context.DeadlineExceeded || err == context.Canceled {
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		err := v.target.WithContext(dbCtx).Model(new(T)).Select("id").Offset(offset).
+			Limit(v.batchSize).Find(&ts).Error
+		cancel()
+		switch err {
+		case gorm.ErrRecordNotFound:
+			if v.sleepInterval > 0 {
+				time.Sleep(v.sleepInterval)
+				// 在 sleep 的时候。不需要调整偏移量
+				continue
+			}
+		case context.DeadlineExceeded, context.Canceled:
+			return nil
+		case nil:
+			v.srcMissingRecords(ctx, ts)
+		default:
+			v.l.Error("dst => src 查询目标表失败", logger.Error(err))
+		}
+		if len(ts) < v.batchSize {
+			// 数据没了
 			return nil
 		}
-		if err == gorm.ErrRecordNotFound || len(ts) == 0 {
-			if v.sleepInterval <= 0 {
-				return nil
-			}
-			time.Sleep(v.sleepInterval)
-			continue
-		}
-		if err != nil {
-			v.l.Error("target -> base 查询 target 失败", logger.Error(err))
-			offset += len(ts)
-			continue
-		}
-		// 在这里有数据
-		var srcTs []T
-		ids := slice.Map(ts, func(idx int, t T) int64 {
-			return t.ID()
-		})
-		err = v.base.WithContext(ctx).Select("id").Where("id IN ?", ids).Find(&srcTs).Error
-		if err == gorm.ErrRecordNotFound || len(srcTs) == 0 {
-			// 代表base里面一条对应的数据都没有
-			v.notifyBaseMissing(ts)
-			continue
-		}
-		if err != nil {
-			v.l.Error("target -> base 查询 base 失败", logger.Error(err))
-			offset += len(ts)
-			continue
-		}
-		// 找差集，diff里面就是target有，但是base没有的
-		diff := slice.DiffSetFunc(ts, srcTs, func(src, dst T) bool {
+		offset += v.batchSize
+	}
+}
+
+func (v *Validator[T]) srcMissingRecords(ctx context.Context, ts []T) {
+	ids := slice.Map(ts, func(idx int, src T) int64 {
+		return src.ID()
+	})
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	base := v.base.WithContext(dbCtx)
+	var srcTs []T
+	err := base.Select("id").Where("id IN ?", ids).Find(&srcTs).Error
+	switch err {
+	case gorm.ErrRecordNotFound:
+		// 说明 ids 全部没有
+		v.notifySrcMissing(ts)
+	case nil:
+		// 计算差集
+		missing := slice.DiffSetFunc(ts, srcTs, func(src, dst T) bool {
 			return src.ID() == dst.ID()
 		})
-		v.notifyBaseMissing(diff)
-		// 说明也没有数据了
-		if len(ts) < v.batchSize {
-			if v.sleepInterval <= 0 {
-				return nil
-			}
-			time.Sleep(v.sleepInterval)
-		}
-		offset += len(ts)
+		v.notifySrcMissing(missing)
+	default:
+		v.l.Error("dst => src 查询源表失败", logger.Error(err))
 	}
 }
 
-func (v *Validator[T]) notifyBaseMissing(ts []T) {
-	for _, val := range ts {
-		v.notify(val.ID(), events.InconsistentEventTypeBaseMissing)
-	}
-}
-
-func (v *Validator[T]) notify(id int64, typ string) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	err := v.producer.ProduceInconsistentEvent(ctx, events.InconsistentEvent{
-		ID:        id,
-		Type:      typ,
-		Direction: v.direction,
-	})
-	if err != nil {
-		v.l.Error("发送不一致消息失败",
-			logger.Error(err),
-			logger.String("type", typ),
-			logger.Int64("id", id))
+func (v *Validator[T]) notifySrcMissing(ts []T) {
+	for _, t := range ts {
+		v.notify(t.ID(), events.InconsistentEventTypeBaseMissing)
 	}
 }

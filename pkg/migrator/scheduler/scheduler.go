@@ -120,12 +120,11 @@ func (s *Scheduler[T]) StartIncrementValidation(c *gin.Context,
 			Msg:  "系统异常",
 		}, nil
 	}
-	v.Incr().Utime(req.Utime).
-		SleepInterval(time.Duration(req.Interval) * time.Millisecond)
+	v.SleepInterval(time.Duration(req.Interval) * time.Millisecond).Utime(req.Utime)
+	var ctx context.Context
+	ctx, s.cancelIncr = context.WithCancel(context.Background())
 
 	go func() {
-		var ctx context.Context
-		ctx, s.cancelIncr = context.WithCancel(context.Background())
 		cancel()
 		err := v.Validate(ctx)
 		s.l.Warn("退出增量校验", logger.Error(err))
@@ -184,9 +183,9 @@ func (s *Scheduler[T]) StartFullValidation(c *gin.Context) (ginx.Result, error) 
 func (s *Scheduler[T]) newValidator() (*validator.Validator[T], error) {
 	switch s.pattern {
 	case connpool.PatternSrcOnly, connpool.PatternSrcFirst:
-		return validator.NewValidator[T](s.src, s.dst, s.l, s.producer, "SRC"), nil
+		return validator.NewValidator[T](s.src, s.dst, "SRC", s.l, s.producer), nil
 	case connpool.PatternDstFirst, connpool.PatternDstOnly:
-		return validator.NewValidator[T](s.dst, s.src, s.l, s.producer, "DST"), nil
+		return validator.NewValidator[T](s.dst, s.src, "DST", s.l, s.producer), nil
 	default:
 		return nil, fmt.Errorf("未知的 pattern %s", s.pattern)
 	}

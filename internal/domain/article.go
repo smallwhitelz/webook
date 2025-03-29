@@ -29,7 +29,7 @@ func (s ArticleStatus) ToUint8() uint8 {
 
 const (
 	// ArticleStatusUnknown 这是一个未知状态
-	ArticleStatusUnknown = iota
+	ArticleStatusUnknown ArticleStatus = iota
 	// ArticleStatusUnpublished 未发表
 	ArticleStatusUnpublished
 	// ArticleStatusPublished 已发表
