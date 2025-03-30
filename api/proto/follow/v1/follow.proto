@@ -2,3 +2,88 @@ syntax = "proto3";
 
 package follow.v1;
 option go_package="./webook/follow/v1;followv1";
+
+service FollowService{
+  // GetFollowee 获取关注列表
+   rpc GetFollowee(GetFolloweeRequest) returns (GetFolloweeResponse);
+  // FollowInfo 点到文章页面，看作者是否被关注的接口
+  rpc  FollowInfo(FollowInfoRequest) returns (FollowInfoResponse);
+  // Follow 关注
+  rpc  Follow(FollowRequest) returns (FollowResponse);
+  // CancelFollow 取消关注
+  rpc  CancelFollow(CancelFollowRequest) returns (CancelFollowResponse);
+  // 获取默认的关注人数
+  rpc GetFollowStatic(GetFollowStaticRequest)returns(GetFollowStaticResponse);
+  // 获取某人的粉丝列表
+  rpc GetFollower (GetFollowerRequest)returns(GetFollowerResponse );
+}
+
+message GetFollowerRequest {
+  int64 followee = 1;
+}
+message    GetFollowerResponse {
+  repeated FollowRelation follow_relations = 1;
+}
+
+message FollowStatic {
+  // 被多少人关注
+  int64 followers =  1;
+  // 自己关注了多少人
+  int64 followees = 2;
+}
+
+message GetFollowStaticRequest{
+  int64 followee = 1;
+}
+
+message GetFollowStaticResponse{
+  FollowStatic followStatic = 1;
+}
+
+message FollowRelation{
+  int64 id = 1;
+  int64 followee = 2;
+  int64  follower = 3;
+}
+
+message GetFolloweeRequest{
+  // 关注者，也就是某人查看自己的关注列表
+  int64 follower = 1;
+  int64 offset = 2;
+  int64 limit = 3;
+}
+
+message GetFolloweeResponse{
+  repeated FollowRelation follow_relations = 1;
+}
+
+message FollowInfoRequest{
+  // 关注者
+  int64 follower = 1;
+  // 被关注者
+  int64 followee = 2;
+}
+
+message FollowInfoResponse{
+  FollowRelation follow_relation = 1;
+}
+
+message FollowRequest{
+  // 被关注者
+  int64 followee = 1;
+  // 关注者
+  int64 follower = 2;
+}
+
+message FollowResponse {
+}
+
+message CancelFollowRequest {
+  // 被关注者
+  int64 followee = 1;
+  // 关注者
+  int64 follower = 2;
+}
+
+message CancelFollowResponse {
+}

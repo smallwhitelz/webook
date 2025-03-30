@@ -13,6 +13,7 @@ type FollowRepository interface {
 	AddFollowRelation(ctx context.Context, f domain.FollowRelation) error
 	// InactiveFollowRelation 取消关注
 	InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error
+	// GetFollowee 获取某人的关注列表
 	GetFollowee(ctx context.Context, follower int64, offset int64, limit int64) ([]domain.FollowRelation, error)
 	FollowInfo(ctx context.Context, follower int64, followee int64) (domain.FollowRelation, error)
 

@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/go-kratos/kratos/v2/log"
 	"testing"
 )
 
@@ -10,15 +12,14 @@ type Req struct {
 }
 
 func Test_normal(t *testing.T) {
-	a := make(map[int]bool)
-	a[1] = false
-	a[2] = true
-	a[3] = false
-	for k, v := range a {
-		if v {
-			a[10+k] = true
-			fmt.Println(v)
-		}
+	mp := make(map[string]string)
+	mp["1"] = "zhangsan"
+	mp["2"] = "lisi"
+	mp["3"] = "wangwu"
+	marshal, err := json.Marshal(mp)
+	if err != nil {
+		log.Error(err)
 	}
-	fmt.Println(a)
+	fmt.Println(mp)
+	fmt.Println(string(marshal))
 }
