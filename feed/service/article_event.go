@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
+	"golang.org/x/sync/errgroup"
+	"sort"
+	"sync"
 	"time"
 	followv1 "webook/api/proto/gen/follow/v1"
 	"webook/feed/domain"
@@ -49,8 +52,50 @@ func (a *ArticleEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Ex
 }
 
 func (a *ArticleEventHandler) FindFeedEvents(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
-	//TODO implement me
-	panic("implement me")
+	// article这边是要聚合的
+	// 可能在push event，可能在pull event
+	var eg errgroup.Group
+	var lock sync.Mutex
+	events := make([]domain.FeedEvent, 0, limit*2)
+	eg.Go(func() error {
+		// 查询发件箱
+		resp, err := a.followClient.GetFollowee(ctx, &followv1.GetFolloweeRequest{Follower: uid, Limit: 10000})
+		if err != nil {
+			return err
+		}
+		followeeIDs := slice.Map(resp.FollowRelations, func(idx int, src *followv1.FollowRelation) int64 {
+			return src.Followee
+		})
+		evts, err := a.repo.FindPullEventsWithTyp(ctx, ArticleEventName, followeeIDs, timestamp, limit)
+		if err != nil {
+			return err
+		}
+		lock.Lock()
+		events = append(events, evts...)
+		lock.Unlock()
+		return nil
+	})
+	eg.Go(func() error {
+		evts, err := a.repo.FindPushEventsWithTyp(ctx, ArticleEventName, uid, timestamp, limit)
+		if err != nil {
+			return err
+		}
+		lock.Lock()
+		events = append(events, evts...)
+		lock.Unlock()
+		return nil
+	})
+	err := eg.Wait()
+	if err != nil {
+		return nil, err
+	}
+	// 你已经查询到所有数据，现在要排序了
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Ctime.UnixMilli() > events[j].Ctime.UnixMilli()
+	})
+	// 高版本可以直接用Go内置方法min()
+	minVal := slice.Min[int]([]int{int(limit), len(events)})
+	return events[:minVal], nil
 }
 
 const (

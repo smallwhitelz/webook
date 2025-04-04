@@ -7,6 +7,8 @@ import (
 
 type FeedPushEventDAO interface {
 	CreatePushEvents(ctx context.Context, events []FeedPushEvent) error
+	GetPushEventsWithTyp(ctx context.Context, typ string, uid int64, timestamp int64, limit int64) ([]FeedPushEvent, error)
+	GetPushEvents(ctx context.Context, uid int64, timestamp int64, limit int64) ([]FeedPushEvent, error)
 }
 
 // FeedPushEvent 对应的是收件箱
@@ -24,6 +26,29 @@ type FeedPushEvent struct {
 
 type feedPushEventDAO struct {
 	db *gorm.DB
+}
+
+func (f *feedPushEventDAO) GetPushEvents(ctx context.Context, uid int64, timestamp int64, limit int64) ([]FeedPushEvent, error) {
+	var events []FeedPushEvent
+	err := f.db.WithContext(ctx).
+		Where("uid = ?", uid).
+		Where("ctime < ?", timestamp).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
+}
+
+func (f *feedPushEventDAO) GetPushEventsWithTyp(ctx context.Context, typ string, uid int64, timestamp int64, limit int64) ([]FeedPushEvent, error) {
+	var events []FeedPushEvent
+	err := f.db.WithContext(ctx).
+		Where("uid = ?", uid).
+		Where("ctime < ?", timestamp).
+		Where("type = ?", typ).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
 }
 
 func (f *feedPushEventDAO) CreatePushEvents(ctx context.Context, events []FeedPushEvent) error {
