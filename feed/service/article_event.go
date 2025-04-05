@@ -98,6 +98,60 @@ func (a *ArticleEventHandler) FindFeedEvents(ctx context.Context, uid, timestamp
 	return events[:minVal], nil
 }
 
+// CreateFeedEventHomework 第二十一周作业
+func (a *ArticleEventHandler) CreateFeedEventHomework(ctx context.Context, ext domain.ExtendFields) error {
+	uid, err := ext.Get("followee").AsInt64()
+	if err != nil {
+		return err
+	}
+
+	// 找到这个人的粉丝数量，判定是拉模型还是推模型
+	resp, err := a.followClient.GetFollowStatic(ctx, &followv1.GetFollowStaticRequest{Followee: uid})
+	if err != nil {
+		return err
+	}
+
+	// 大于一个阈值
+	if resp.FollowStatic.Followers > threshold {
+		// 粉丝里面有活跃粉丝，还是要执行写扩散，但是是针对这个用户执行写扩散
+		fresp, err := a.followClient.GetFollower(ctx, &followv1.GetFollowerRequest{Followee: uid})
+		if err != nil {
+			return err
+		}
+
+		events := slice.FilterMap(fresp.FollowRelations, func(idx int, src *followv1.FollowRelation) (domain.FeedEvent, bool) {
+			if !a.isActiveUser(src.Follower) {
+				return domain.FeedEvent{}, false
+			}
+			return domain.FeedEvent{Uid: src.Follower, Ctime: time.Now(), Type: ArticleEventName, Ext: ext}, true
+		})
+
+		err = a.repo.CreatePushEvents(ctx, events)
+		if err != nil {
+			return err
+		}
+		// 拉模型
+		return a.repo.CreatePullEvents(ctx, domain.FeedEvent{Uid: uid,
+			Type:  ArticleEventName,
+			Ctime: time.Now(),
+			Ext:   ext})
+	} else {
+		// 先查询粉丝，而后看粉丝里面是不是有活跃用户
+		fresp, err := a.followClient.GetFollower(ctx, &followv1.GetFollowerRequest{Followee: uid})
+		if err != nil {
+			return err
+		}
+		events := slice.Map(fresp.FollowRelations, func(idx int, src *followv1.FollowRelation) domain.FeedEvent {
+			return domain.FeedEvent{Uid: src.Follower, Ctime: time.Now(), Type: ArticleEventName, Ext: ext}
+		})
+		return a.repo.CreatePushEvents(ctx, events)
+	}
+}
+
+func (a *ArticleEventHandler) isActiveUser(uid int64) bool {
+	return false
+}
+
 const (
 	ArticleEventName = "article_event"
 	threshold        = 4
