@@ -9,7 +9,7 @@ import (
 	"webook/internal/repository/dao"
 	"webook/pkg/canalx"
 	"webook/pkg/logger"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 )
 
 type MySQLBinlogConsumer struct {
@@ -27,7 +27,7 @@ func (r *MySQLBinlogConsumer) Start() error {
 	go func() {
 		err := cg.Consume(context.Background(),
 			[]string{"webook_binlog"},
-			samarax.NewHandler[canalx.Message[dao.PublishedArticle]](r.l, r.Consume))
+			saramax.NewHandler[canalx.Message[dao.PublishedArticle]](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出了消费循环异常", logger.Error(err))
 		}

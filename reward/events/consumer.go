@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 	"webook/pkg/logger"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 	"webook/reward/domain"
 	"webook/reward/service"
 )
@@ -50,7 +50,7 @@ func (r *PaymentEventConsumer) Start() error {
 	go func() {
 		err := cg.Consume(context.Background(),
 			[]string{"payment_events"},
-			samarax.NewHandler[PaymentEvent](r.l, r.Consume))
+			saramax.NewHandler[PaymentEvent](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出了消费循环异常", logger.Error(err))
 		}

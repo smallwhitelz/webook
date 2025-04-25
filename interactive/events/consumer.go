@@ -6,7 +6,7 @@ import (
 	"time"
 	"webook/interactive/repository"
 	"webook/pkg/logger"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 )
 
 const TopicReadEvent = "article_read"
@@ -27,9 +27,9 @@ func (i *InteractiveReadEventConsumer) Start() error {
 		return err
 	}
 	go func() {
-		er := cg.Consume(context.Background(), []string{TopicReadEvent}, samarax.NewHandler[ReadEvent](i.l, i.Consume))
+		er := cg.Consume(context.Background(), []string{TopicReadEvent}, saramax.NewHandler[ReadEvent](i.l, i.Consume))
 		// 带监控
-		//er := cg.Consume(context.Background(), []string{TopicReadEvent}, samarax.NewHandlerV1[ReadEvent]("consumer_prom", i.l, i.Consume))
+		//er := cg.Consume(context.Background(), []string{TopicReadEvent}, saramax.NewHandlerV1[ReadEvent]("consumer_prom", i.l, i.Consume))
 		if er != nil {
 			i.l.Error("退出消费", logger.Error(er))
 		}
@@ -54,7 +54,7 @@ type ReadEvent struct {
 //		return err
 //	}
 //	go func() {
-//		er := cg.Consume(context.Background(), []string{TopicReadEvent}, samarax.NewBatchHandler[ReadEvent](i.l, i.BatchConsume))
+//		er := cg.Consume(context.Background(), []string{TopicReadEvent}, saramax.NewBatchHandler[ReadEvent](i.l, i.BatchConsume))
 //		if er != nil {
 //			i.l.Error("退出消费", logger.Error(er))
 //		}

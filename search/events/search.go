@@ -5,7 +5,7 @@ import (
 	"github.com/IBM/sarama"
 	"time"
 	"webook/pkg/logger"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 	"webook/search/service"
 )
 
@@ -30,7 +30,7 @@ func (s *SyncDataEventConsumer) Start() error {
 	}
 	go func() {
 		err := cg.Consume(context.Background(), []string{"sync_search_data"},
-			samarax.NewHandler[SyncDataEvent](s.l, s.Consume))
+			saramax.NewHandler[SyncDataEvent](s.l, s.Consume))
 		if err != nil {
 			s.l.Error("退出消费循环异常", logger.Error(err))
 		}

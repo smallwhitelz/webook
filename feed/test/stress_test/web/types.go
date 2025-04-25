@@ -1,6 +1,6 @@
 package web
 
-import "gitee.com/geekbang/basic-go/webook/pkg/ginx"
+import "webook/pkg/ginx"
 
 type FindFeedEventReq struct {
 	UID       int64 `json:"uid"`

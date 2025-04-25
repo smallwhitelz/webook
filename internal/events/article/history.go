@@ -7,7 +7,7 @@ import (
 	"webook/internal/domain"
 	"webook/internal/repository"
 	"webook/pkg/logger"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 )
 
 type HistoryRecordConsumer struct {
@@ -22,7 +22,7 @@ func (h *HistoryRecordConsumer) Start() error {
 		return err
 	}
 	go func() {
-		er := cg.Consume(context.Background(), []string{TopicReadEvent}, samarax.NewHandler[ReadEvent](h.l, h.Consume))
+		er := cg.Consume(context.Background(), []string{TopicReadEvent}, saramax.NewHandler[ReadEvent](h.l, h.Consume))
 		if er != nil {
 			h.l.Error("退出消费", logger.Error(er))
 		}

@@ -10,7 +10,7 @@ import (
 	"webook/pkg/migrator"
 	"webook/pkg/migrator/events"
 	"webook/pkg/migrator/fixer"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 )
 
 type Consumer[T migrator.Entity] struct {
@@ -47,9 +47,9 @@ func (c *Consumer[T]) Start() error {
 		return err
 	}
 	go func() {
-		er := cg.Consume(context.Background(), []string{c.topic}, samarax.NewHandler[events.InconsistentEvent](c.l, c.Consume))
+		er := cg.Consume(context.Background(), []string{c.topic}, saramax.NewHandler[events.InconsistentEvent](c.l, c.Consume))
 		// 带监控
-		//er := cg.Consume(context.Background(), []string{TopicReadEvent}, samarax.NewHandlerV1[ReadEvent]("consumer_prom", i.l, i.Consume))
+		//er := cg.Consume(context.Background(), []string{TopicReadEvent}, saramax.NewHandlerV1[ReadEvent]("consumer_prom", i.l, i.Consume))
 		if er != nil {
 			c.l.Error("退出消费", logger.Error(er))
 		}

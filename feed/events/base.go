@@ -7,7 +7,7 @@ import (
 	"webook/feed/domain"
 	"webook/feed/service"
 	"webook/pkg/logger"
-	"webook/pkg/samarax"
+	"webook/pkg/saramax"
 )
 
 const topicFeedEvent = "feed_event"
@@ -37,7 +37,7 @@ func (r *FeedEventConsumer) Start() error {
 		return err
 	}
 	go func() {
-		err := cg.Consume(context.Background(), []string{topicFeedEvent}, samarax.NewHandler[FeedEvent](r.l, r.Consume))
+		err := cg.Consume(context.Background(), []string{topicFeedEvent}, saramax.NewHandler[FeedEvent](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出消费循环一场", logger.Error(err))
 		}

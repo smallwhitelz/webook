@@ -2,10 +2,10 @@ package web
 
 import (
 	"encoding/json"
-	"gitee.com/geekbang/basic-go/webook/feed/domain"
-	"gitee.com/geekbang/basic-go/webook/feed/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"webook/feed/domain"
+	"webook/feed/service"
 )
 
 // 为了压测

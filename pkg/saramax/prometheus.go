@@ -1,4 +1,4 @@
-package samarax
+package saramax
 
 import (
 	"encoding/json"
