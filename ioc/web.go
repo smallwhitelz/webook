@@ -57,8 +57,11 @@ func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.V1
 		cors.New(cors.Config{
 			//AllowAllOrigins: true, 所有请求都允许
 			//AllowOrigins:     []string{"http://localhost:3000"}, // 允许访问的域
+			// 是否允许cookie之类的东西要不要带过来
 			AllowCredentials: true,
 			AllowHeaders:     []string{"Content-Type", "Authorization"},
+			// 一般不要去配，允许所有方法基本不会有什么危险
+			//AllowMethods: []string{"POST"},
 			//允许前端访问你的后端响应中带的头部
 			ExposeHeaders: []string{"x-jwt-token", "x-refresh-token"},
 			AllowOriginFunc: func(origin string) bool {

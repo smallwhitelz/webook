@@ -37,7 +37,7 @@ func (s *Service) Send(ctx context.Context, tplId string, args []string, numbers
 			continue
 		}
 		status := *statusPtr
-		if status.Code == nil && *(status.Code) != "Ok" {
+		if status.Code == nil || *(status.Code) != "Ok" {
 			// 发送失败
 			return fmt.Errorf("发送短信失败 code: %s, msg: %s", *status.Code, *status.Message)
 		}

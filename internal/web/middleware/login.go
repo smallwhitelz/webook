@@ -37,6 +37,7 @@ func (m *LoginMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 		const updateTimeKey = "update_time"
 		val := sess.Get(updateTimeKey)
 		lastUpdateTime, ok := val.(time.Time) // 类型断言，断言val的类型是time.Time，如果是，那么ok就是true，否则就是false
+		// 如果没有获取到val，并且也不是time类型并且超过了一分钟，那么就要重新设置sess
 		if val == nil || (!ok) || now.Sub(lastUpdateTime) > time.Minute {
 			// 第一登陆
 			sess.Set(updateTimeKey, now)

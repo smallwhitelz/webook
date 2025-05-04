@@ -38,13 +38,14 @@ func (h *RedisJWTHandler) CheckSession(ctx *gin.Context, ssid string) error {
 
 // ExtractToken 根据约定，token在Authorization头中
 // Bearer xxxxx
-func (r *RedisJWTHandler) ExtractToken(ctx *gin.Context) string {
+func (h *RedisJWTHandler) ExtractToken(ctx *gin.Context) string {
 	authCode := ctx.GetHeader("Authorization")
 	if authCode == "" {
 		return authCode
 	}
 	segs := strings.Split(authCode, " ")
 	if len(segs) != 2 {
+		// 没登陆 Authorization中的内容是乱传的
 		return ""
 	}
 	return segs[1]
@@ -73,6 +74,7 @@ func (h *RedisJWTHandler) SetJWTToken(ctx *gin.Context, uid int64, ssid string) 
 		Ssid:      ssid,
 		UserAgent: ctx.GetHeader("User-Agent"),
 		RegisteredClaims: jwt.RegisteredClaims{
+			// 30分钟过期
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
 	}

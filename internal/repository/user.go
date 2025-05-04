@@ -121,6 +121,8 @@ func (repo *CachedUserRepository) toEntity(u domain.User) dao.User {
 	}
 }
 
+// FindById 建议用这种方式，虽然如果redis崩了，数据量会全打到数据库中
+// 但是真正的高并发高流量场景把redis打崩的情况很少
 func (repo *CachedUserRepository) FindById(ctx context.Context, uid int64) (domain.User, error) {
 	du, err := repo.cache.Get(ctx, uid)
 	// 只要 err为 nil，就返回
@@ -136,20 +138,26 @@ func (repo *CachedUserRepository) FindById(ctx context.Context, uid int64) (doma
 		return domain.User{}, err
 	}
 	du = repo.toDomain(u)
+	// 异步
+	// go中用异步可以，因为go开启一个异步非常方便
 	go func() {
 		err = repo.cache.Set(ctx, du)
 		if err != nil {
 			log.Println(err)
 		}
 	}()
-	err = repo.cache.Set(ctx, du)
-	if err != nil {
-		// 网络崩了，也可能是 redis 崩了
-		log.Println(err)
-	}
+	// 同步
+	// java中用同步，因为java开一个线程很麻烦
+	// 但是在这里同步和异步的效率优化并不大，所以都可以
+	//err = repo.cache.Set(ctx, du)
+	//if err != nil {
+	//	// 网络崩了，也可能是 redis 崩了
+	//	log.Println(err)
+	//}
 	return du, nil
 }
 
+// FindByIdV1 考虑到redis崩溃以及网络不通的问题，保护住了数据库，避免瞬时流量过大打崩数据库，防止缓存击穿
 func (repo *CachedUserRepository) FindByIdV1(ctx context.Context, uid int64) (domain.User, error) {
 	du, err := repo.cache.Get(ctx, uid)
 	// 只要 err为 nil，就返回
@@ -157,6 +165,7 @@ func (repo *CachedUserRepository) FindByIdV1(ctx context.Context, uid int64) (do
 	case nil:
 		return du, nil
 	case cache.ErrKeyNotExist:
+		// 1. key 不存在，说明redis是正常的
 		u, err := repo.dao.FindById(ctx, uid)
 		if err != nil {
 			return domain.User{}, err
@@ -168,13 +177,14 @@ func (repo *CachedUserRepository) FindByIdV1(ctx context.Context, uid int64) (do
 				log.Println(err)
 			}
 		}()
-		err = repo.cache.Set(ctx, du)
-		if err != nil {
-			// 网络崩了，也可能是 redis 崩了
-			log.Println(err)
-		}
+		//err = repo.cache.Set(ctx, du)
+		//if err != nil {
+		//	// 网络崩了，也可能是 redis 崩了
+		//	log.Println(err)
+		//}
 		return du, nil
 	default:
+		// 2. 访问redis有问题。可能是网络有问题，也有可能是 redis 本身就崩溃了
 		// 接近降级的写法
 		return domain.User{}, err
 	}
@@ -185,13 +195,8 @@ func (repo *CachedUserRepository) UpdateNonSensitiveInfo(ctx context.Context, us
 	if err != nil {
 		return err
 	}
-	// 更新成功后，找到这个用户
-	u, err := repo.dao.FindById(ctx, user.Id)
-	if err != nil {
-		return err
-	}
 	// 更新缓存
-	return repo.cache.Set(ctx, repo.toDomain(u))
+	return repo.cache.Del(ctx, user.Id)
 }
 
 func (repo *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {

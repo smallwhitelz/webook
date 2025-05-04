@@ -14,6 +14,7 @@ var (
 	ErrInvalidUserOrPassword = errors.New("用户名或密码错误")
 )
 
+//go:generate mockgen -source=./user.go -package=svcmocks -destination=./mocks/user.mock.go UserService
 type UserService interface {
 	Signup(ctx context.Context, u domain.User) error
 	Login(ctx context.Context, email string, password string) (domain.User, error)
