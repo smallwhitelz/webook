@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"net/http"
@@ -122,6 +123,12 @@ func TestArticleHandler_Publish(t *testing.T) {
 		},
 	}
 
+	ginx.InitCount(prometheus.CounterOpts{
+		Namespace: "geektime_zl",
+		Subsystem: "webook",
+		Name:      "biz_code",
+		Help:      "统计业务错误码	",
+	})
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
