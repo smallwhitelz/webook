@@ -9,6 +9,7 @@ import (
 
 var errLimited = errors.New("触发限流")
 
+// RateLimitSMSService 对短信服务进行限流
 type RateLimitSMSService struct {
 	// 被装饰的
 	svc     sms.Service

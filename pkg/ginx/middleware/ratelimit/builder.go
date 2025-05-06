@@ -21,10 +21,10 @@ func NewBuilder(l limiter.Limiter) *Builder {
 	}
 }
 
-func (b *Builder) Prefix(prefix string) *Builder {
-	b.prefix = prefix
-	return b
-}
+//func (b *Builder) Prefix(prefix string) *Builder {
+//	b.prefix = prefix
+//	return b
+//}
 
 func (b *Builder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {

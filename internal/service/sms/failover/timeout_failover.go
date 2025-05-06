@@ -6,6 +6,8 @@ import (
 	"webook/internal/service/sms"
 )
 
+// TimeoutFailoverSMSService 当某个服务商短信服务连续超时达到某个阈值
+// 进行服务商切换
 type TimeoutFailoverSMSService struct {
 	svcs []sms.Service
 	// 当前正在使用节点
@@ -23,6 +25,9 @@ func NewTimeoutFailoverSMSService(svcs []sms.Service, threshold int32) *TimeoutF
 	}
 }
 
+// Send 这里的原子操作已经保证了数据竞争的安全
+// 但是多步操作依然会有并发安全问题，但是这个我们是可以接受的
+// 如果想要彻底解决并发安全，就要加锁，但是加锁了在高并发的时候效率会大幅度下降
 func (t *TimeoutFailoverSMSService) Send(ctx context.Context, tplId string, args []string, numbers ...string) error {
 	idx := atomic.LoadInt32(&t.idx)
 	cnt := atomic.LoadInt32(&t.cnt)
