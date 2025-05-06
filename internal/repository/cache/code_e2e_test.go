@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// 用来测试lua脚本
 func TestRedisCodeCache_Set_e2e(t *testing.T) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "43.154.97.245:6379",
@@ -38,7 +39,7 @@ func TestRedisCodeCache_Set_e2e(t *testing.T) {
 				dur, err := rdb.TTL(ctx, key).Result()
 				assert.NoError(t, err)
 				assert.True(t, dur > time.Minute*9)
-				code, err := rdb.Get(ctx, key).Result()
+				code, err := rdb.GetDel(ctx, key).Result()
 				assert.NoError(t, err)
 				assert.Equal(t, "123456", code)
 			},
@@ -64,7 +65,7 @@ func TestRedisCodeCache_Set_e2e(t *testing.T) {
 				dur, err := rdb.TTL(ctx, key).Result()
 				assert.NoError(t, err)
 				assert.True(t, dur > time.Minute*9)
-				code, err := rdb.Get(ctx, key).Result()
+				code, err := rdb.GetDel(ctx, key).Result()
 				assert.NoError(t, err)
 				assert.Equal(t, "654321", code)
 			},

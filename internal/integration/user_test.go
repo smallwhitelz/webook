@@ -130,6 +130,10 @@ func TestUserHandler_SendSMSCode(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			server.ServeHTTP(recorder, req)
 			assert.Equal(t, tc.wantCode, recorder.Code)
+			// 这个可以用来测试Bind那一路分支
+			if tc.wantCode != http.StatusOK {
+				return
+			}
 			var res ginx.Result
 			err = json.NewDecoder(recorder.Body).Decode(&res)
 			assert.NoError(t, err)
