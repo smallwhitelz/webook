@@ -15,6 +15,7 @@ var (
 	ErrUserNotFound  = dao.ErrRecordNotFound
 )
 
+//go:generate mockgen -source=./user.go -package=repomocks -destination=./mocks/user.mock.go UserRepository
 type UserRepository interface {
 	Create(ctx context.Context, user domain.User) error
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
@@ -140,20 +141,21 @@ func (repo *CachedUserRepository) FindById(ctx context.Context, uid int64) (doma
 	du = repo.toDomain(u)
 	// 异步
 	// go中用异步可以，因为go开启一个异步非常方便
-	go func() {
-		err = repo.cache.Set(ctx, du)
-		if err != nil {
-			log.Println(err)
-		}
-	}()
+	// 单测中测试不到异步
+	//go func() {
+	//	err = repo.cache.Set(ctx, du)
+	//	if err != nil {
+	//		log.Println(err)
+	//	}
+	//}()
 	// 同步
 	// java中用同步，因为java开一个线程很麻烦
 	// 但是在这里同步和异步的效率优化并不大，所以都可以
-	//err = repo.cache.Set(ctx, du)
-	//if err != nil {
-	//	// 网络崩了，也可能是 redis 崩了
-	//	log.Println(err)
-	//}
+	err = repo.cache.Set(ctx, du)
+	if err != nil {
+		// 网络崩了，也可能是 redis 崩了
+		log.Println(err)
+	}
 	return du, nil
 }
 

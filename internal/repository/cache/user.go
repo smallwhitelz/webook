@@ -11,6 +11,7 @@ import (
 
 var ErrKeyNotExist = redis.Nil
 
+//go:generate mockgen -source=./user.go -package=cachemocks -destination=./mocks/user.mock.go UserCache
 type UserCache interface {
 	Get(ctx context.Context, uid int64) (domain.User, error)
 	Set(ctx context.Context, du domain.User) error

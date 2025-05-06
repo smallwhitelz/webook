@@ -18,6 +18,7 @@ var (
 	ErrCodeVerifyTooMany = errors.New("验证验证码过于频繁")
 )
 
+//go:generate mockgen -source=./code.go -package=cachemocks -destination=./mocks/code.mock.go CodeCache
 type CodeCache interface {
 	Set(ctx context.Context, biz, phone, code string) error
 	Verify(ctx context.Context, biz, phone, code string) (bool, error)

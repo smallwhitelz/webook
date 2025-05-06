@@ -47,7 +47,8 @@ func Test_userService_Login(t *testing.T) {
 					}, nil)
 				return repo
 			},
-			email:    "123@qq.com",
+			email: "123@qq.com",
+			// 这里是用户输入的，没有加密的
 			password: "123456##hello",
 
 			wantUser: domain.User{

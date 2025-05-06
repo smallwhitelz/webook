@@ -36,7 +36,7 @@ func TestCachedUserRepository_FindById(t *testing.T) {
 					Return(dao.User{
 						Id: uid,
 						Email: sql.NullString{
-							String: "123@qq.com",
+							String: "123456@qq.com",
 							Valid:  true,
 						},
 						Password:    "123456",
@@ -51,7 +51,7 @@ func TestCachedUserRepository_FindById(t *testing.T) {
 					}, nil)
 				c.EXPECT().Set(gomock.Any(), domain.User{
 					Id:          123,
-					Email:       "123@qq.com",
+					Email:       "123456@qq.com",
 					Password:    "123456",
 					Birthday:    time.UnixMilli(100),
 					Description: "自我介绍",
@@ -64,7 +64,7 @@ func TestCachedUserRepository_FindById(t *testing.T) {
 			ctx: context.Background(),
 			wantUser: domain.User{
 				Id:          123,
-				Email:       "123@qq.com",
+				Email:       "123456@qq.com",
 				Password:    "123456",
 				Birthday:    time.UnixMilli(100),
 				Description: "自我介绍",
