@@ -46,6 +46,7 @@ func (o *OAuth2WechatHandler) Auth2URL(ctx *gin.Context) {
 		})
 		return
 	}
+	// 在构造URL的时候就将state放到cookie中，callback的时候验证
 	err = o.setStateCookie(ctx, state)
 	if err != nil {
 		ctx.JSON(http.StatusOK, ginx.Result{
@@ -95,6 +96,7 @@ func (o *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 	return
 }
 
+// verifyState 验证微信登陆的state是否是原用户的，防止csrf攻击
 func (o *OAuth2WechatHandler) verifyState(ctx *gin.Context) error {
 	state := ctx.Query("state")
 	ck, err := ctx.Cookie(o.stateCookieName)

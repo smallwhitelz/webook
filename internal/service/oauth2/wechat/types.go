@@ -15,7 +15,7 @@ type Service interface {
 	VerifyCode(ctx context.Context, code string) (domain.WechatInfo, error)
 }
 
-var redirectURL = url.PathEscape(`https://meoying.com/oauth2/wechat/callback`)
+var redirectURL = url.PathEscape("https://meoying.com/oauth2/wechat/callback")
 
 type service struct {
 	appID     string
@@ -33,6 +33,7 @@ func NewService(appID string, appSecret string, l logger.V1) Service {
 	}
 }
 
+// VerifyCode 给微信发一个http请求
 func (s *service) VerifyCode(ctx context.Context, code string) (domain.WechatInfo, error) {
 	accessTokenUrl := fmt.Sprintf(`https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code`,
 		s.appID, s.appSecret, code)
