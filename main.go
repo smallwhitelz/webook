@@ -64,7 +64,9 @@ func InitLogger() {
 }
 
 func InitViper() {
+	// 读取的文件名称
 	viper.SetConfigName("dev")
+	// 读取的文件类型
 	viper.SetConfigType("yaml")
 	// 当前工作目录的 config 子目录
 	viper.AddConfigPath("config")
@@ -76,24 +78,7 @@ func InitViper() {
 	log.Println(viper.Get("test.key"))
 }
 
-func InitViperWatch() {
-	cfile := pflag.String("config", "config/dev.yaml", "配置文件路径")
-	// 这一步后 cfile才有值
-	pflag.Parse()
-	viper.SetConfigType("yaml")
-	viper.SetConfigFile(*cfile)
-	viper.WatchConfig()
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		log.Println(viper.GetString("test.key"))
-	})
-	// 读取配置
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(err)
-	}
-	log.Println(viper.Get("test.key"))
-}
-
+// InitViperV1 利用viper读取启动参数Program arguments
 func InitViperV1() {
 	cfile := pflag.String("config", "config/dev.yaml", "配置文件路径")
 	// 这一步后 cfile才有值
@@ -108,6 +93,8 @@ func InitViperV1() {
 	log.Println(viper.Get("test.key"))
 }
 
+// InitViperV2 比如在测试或者本地调试的时候，我们懒得写配置文件，就可以在Go中手写这个配置，然后传给viper
+// ps：都手写了，可以直接写死在ioc里
 func InitViperV2() {
 	cfg := `
 test:
@@ -126,7 +113,29 @@ db:
 	}
 }
 
+// InitViperWatch 监听配置变更，场景比如为功能A设置一个开关，最开始开启A，一旦A有问题，直接关掉
+func InitViperWatch() {
+	cfile := pflag.String("config", "config/dev.yaml", "配置文件路径")
+	// 这一步后 cfile才有值
+	pflag.Parse()
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(*cfile)
+	// 有严格的顺序要求，一定在set，add等方法之后调用
+	viper.WatchConfig()
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		log.Println(viper.GetString("test.key"))
+	})
+	// 读取配置
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+	log.Println(viper.Get("test.key"))
+}
+
+// initViperRemote 远程配置中心
 func initViperRemote() {
+	// 如果etcd有密码，那这里会报错，社区不支持读取etcd密码
 	err := viper.AddRemoteProvider("etcd3", "http://43.154.97.245:12379", "/webook")
 	if err != nil {
 		panic(err)
@@ -139,8 +148,10 @@ func initViperRemote() {
 	if err != nil {
 		panic(err)
 	}
+	// 这一步如果在ReadRemoteConfig前面，会出现并发读写的问题，就会直接panic
 	go func() {
 		for {
+			// 监听远程配置中心变更
 			err = viper.WatchRemoteConfig()
 			if err != nil {
 				panic(err)

@@ -16,6 +16,7 @@ func InitDB(l logger.V1) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}
+	// 设置默认值，当配置文件没有db的配置的时候会用默认值
 	var cfg Config = Config{
 		DSN: "root:root@tcp(43.154.97.245:13316)/webook",
 	}
