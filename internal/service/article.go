@@ -28,7 +28,7 @@ type articleService struct {
 	// V1写法专用
 	readerRepo repository.ArticleReaderRepository
 	authorRepo repository.ArticleAuthorRepository
-	l          logger.V1
+	l          logger.LoggerV1
 }
 
 func (a *articleService) ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error) {
@@ -65,7 +65,7 @@ func (a *articleService) GetByAuthor(ctx context.Context, uid int64, offset int,
 }
 
 func NewArticleServiceV1(readerRepo repository.ArticleReaderRepository,
-	authorRepo repository.ArticleAuthorRepository, l logger.V1) *articleService {
+	authorRepo repository.ArticleAuthorRepository, l logger.LoggerV1) *articleService {
 	return &articleService{
 		readerRepo: readerRepo,
 		authorRepo: authorRepo,

@@ -15,11 +15,11 @@ type CronJobService interface {
 
 type cronJobService struct {
 	repo            repository.CronJobRepository
-	l               logger.V1
+	l               logger.LoggerV1
 	refreshInterval time.Duration
 }
 
-func NewCronJobService(repo repository.CronJobRepository, l logger.V1) CronJobService {
+func NewCronJobService(repo repository.CronJobRepository, l logger.LoggerV1) CronJobService {
 	return &cronJobService{repo: repo, l: l, refreshInterval: time.Minute}
 }
 

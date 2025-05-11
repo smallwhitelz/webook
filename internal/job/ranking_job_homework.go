@@ -15,7 +15,7 @@ import (
 
 type RankingJobV1 struct {
 	svc     service.RankingService
-	l       logger.V1
+	l       logger.LoggerV1
 	timeout time.Duration
 	client  *rlock.Client
 	key     string
@@ -37,7 +37,7 @@ type RankingJobV1 struct {
 
 func NewRankingJobV1(
 	svc service.RankingService,
-	l logger.V1,
+	l logger.LoggerV1,
 	client *rlock.Client,
 	timeout time.Duration,
 	redisClient redis.Cmdable,

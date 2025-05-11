@@ -6,7 +6,7 @@ import (
 	"webook/pkg/logger"
 )
 
-func InitLogger() logger.V1 {
+func InitLogger() logger.LoggerV1 {
 	l, err := zap.NewDevelopment()
 	if err != nil {
 		panic(err)
@@ -15,7 +15,7 @@ func InitLogger() logger.V1 {
 }
 
 // InitLoggerV1 两种写法都可以，这种可以控制生产环境NewProductionConfig和开发环境NewDevelopmentConfig
-func InitLoggerV1() logger.V1 {
+func InitLoggerV1() logger.LoggerV1 {
 	cfg := zap.NewDevelopmentConfig()
 	err := viper.UnmarshalKey("log", &cfg)
 	if err != nil {

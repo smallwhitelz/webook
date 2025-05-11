@@ -18,11 +18,11 @@ import (
 type ArticleHandler struct {
 	svc     service.ArticleService
 	intrSvc service.InteractiveService
-	l       logger.V1
+	l       logger.LoggerV1
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.V1, intrSvc service.InteractiveService) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc service.InteractiveService) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		l:       l,

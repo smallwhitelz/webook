@@ -50,12 +50,12 @@ type Scheduler struct {
 
 	executors map[string]Executor
 
-	l logger.V1
+	l logger.LoggerV1
 
 	limiter *semaphore.Weighted
 }
 
-func NewScheduler(svc service.CronJobService, l logger.V1) *Scheduler {
+func NewScheduler(svc service.CronJobService, l logger.LoggerV1) *Scheduler {
 	return &Scheduler{
 		svc:       svc,
 		dbTimeout: time.Second,

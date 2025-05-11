@@ -40,7 +40,7 @@ func InitWebServer(mdls []gin.HandlerFunc, userHdl *web.UserHandler,
 	return server
 }
 
-func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.V1) []gin.HandlerFunc {
+func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.LoggerV1) []gin.HandlerFunc {
 	pb := &prometheus.Builder{
 		Namespace: "geektime_zl",
 		Subsystem: "webook",
@@ -53,6 +53,7 @@ func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.V1
 		Name:      "biz_code",
 		Help:      "统计业务错误码	",
 	})
+	ginx.SetLogger(l)
 	return []gin.HandlerFunc{
 		cors.New(cors.Config{
 			//AllowAllOrigins: true, 所有请求都允许
@@ -79,9 +80,10 @@ func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.V1
 		pb.BuildActiveRequest(),
 		otelgin.Middleware("webook"),
 		ratelimit.NewBuilder(limiter.NewRedisSlidingWindowLimiter(redisClient, time.Second, 1000)).Build(),
-		middleware.NewLogMiddlewareBuilder(func(ctx context.Context, al middleware.AccessLog) {
-			l.Debug("", logger.Field{Key: "req", Val: al})
-		}).AllowReqBody().AllowRespBody().Build(),
+		middleware.NewLogMiddlewareBuilder(
+			func(ctx context.Context, al middleware.AccessLog) {
+				l.Debug("", logger.Field{Key: "req", Val: al})
+			}).AllowReqBody().AllowRespBody().Build(),
 		middleware.NewLoginJWTMiddlewareBuilder(hdl).CheckLogin(),
 	}
 }

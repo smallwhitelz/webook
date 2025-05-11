@@ -106,8 +106,11 @@ func (svc *userService) FindOrCreateByWechat(ctx context.Context, wechatInfo dom
 
 	// 这边意味着是一个新用户
 	// JSON 格式的 wechatInfo
+	// 直接使用包变量
 	zap.L().Info("这是一个新用户", zap.Any("wechatInfo", wechatInfo))
+	// 使用注入的logger
 	//svc.logger.Info("这是一个新用户", zap.Any("wechatInfo", wechatInfo))
+	
 	err = svc.repo.Create(ctx, domain.User{
 		WechatInfo: wechatInfo,
 	})

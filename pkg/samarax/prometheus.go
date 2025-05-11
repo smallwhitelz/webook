@@ -10,14 +10,14 @@ import (
 )
 
 type HandlerV1[T any] struct {
-	l      logger.V1
+	l      logger.LoggerV1
 	fn     func(msg *sarama.ConsumerMessage, event T) error
 	vector *prometheus.SummaryVec
 }
 
 func NewHandlerV1[T any](
 	consumer string,
-	l logger.V1,
+	l logger.LoggerV1,
 	fn func(msg *sarama.ConsumerMessage, event T) error) *HandlerV1[T] {
 	// 整个 options 都可以考虑做成参数
 	vector := prometheus.NewSummaryVec(prometheus.SummaryOpts{

@@ -12,10 +12,10 @@ import (
 type InteractiveReadEventConsumer struct {
 	repo   repository.InteractiveRepository
 	client sarama.Client
-	l      logger.V1
+	l      logger.LoggerV1
 }
 
-func NewInteractiveReadEventConsumer(repo repository.InteractiveRepository, client sarama.Client, l logger.V1) *InteractiveReadEventConsumer {
+func NewInteractiveReadEventConsumer(repo repository.InteractiveRepository, client sarama.Client, l logger.LoggerV1) *InteractiveReadEventConsumer {
 	return &InteractiveReadEventConsumer{repo: repo, client: client, l: l}
 }
 

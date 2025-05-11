@@ -11,7 +11,7 @@ import (
 
 type RankingJob struct {
 	svc       service.RankingService
-	l         logger.V1
+	l         logger.LoggerV1
 	timeout   time.Duration
 	client    *rlock.Client
 	key       string
@@ -19,7 +19,7 @@ type RankingJob struct {
 	lock      *rlock.Lock
 }
 
-func NewRankingJob(svc service.RankingService, l logger.V1, client *rlock.Client, timeout time.Duration) *RankingJob {
+func NewRankingJob(svc service.RankingService, l logger.LoggerV1, client *rlock.Client, timeout time.Duration) *RankingJob {
 	return &RankingJob{
 		svc:       svc,
 		l:         l,

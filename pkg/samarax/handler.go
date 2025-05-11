@@ -7,11 +7,11 @@ import (
 )
 
 type Handler[T any] struct {
-	l  logger.V1
+	l  logger.LoggerV1
 	fn func(msg *sarama.ConsumerMessage, event T) error
 }
 
-func NewHandler[T any](l logger.V1, fn func(msg *sarama.ConsumerMessage, event T) error) *Handler[T] {
+func NewHandler[T any](l logger.LoggerV1, fn func(msg *sarama.ConsumerMessage, event T) error) *Handler[T] {
 	return &Handler[T]{l: l, fn: fn}
 }
 

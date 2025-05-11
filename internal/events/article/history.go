@@ -13,7 +13,7 @@ import (
 type HistoryRecordConsumer struct {
 	repo   repository.HistoryRecordRepository
 	client sarama.Client
-	l      logger.V1
+	l      logger.LoggerV1
 }
 
 func (h *HistoryRecordConsumer) Start() error {

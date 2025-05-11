@@ -6,7 +6,7 @@ import (
 	"webook/pkg/logger"
 )
 
-func InitWechatService(l logger.V1) wechat.Service {
+func InitWechatService(l logger.LoggerV1) wechat.Service {
 	err := os.Setenv("WECHAT_APP_ID", "wx7256bc69ab349c72")
 	if err != nil {
 		panic("设置环境变量失败")

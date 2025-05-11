@@ -5,6 +5,6 @@ import (
 	"webook/pkg/logger"
 )
 
-func InitWechatService(l logger.V1) wechat.Service {
+func InitWechatService(l logger.LoggerV1) wechat.Service {
 	return wechat.NewService("", "", l)
 }

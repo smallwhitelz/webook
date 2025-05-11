@@ -10,11 +10,11 @@ import (
 	"webook/pkg/logger"
 )
 
-func InitRankingJob(svc service.RankingService, client *rlock.Client, l logger.V1) *job.RankingJob {
+func InitRankingJob(svc service.RankingService, client *rlock.Client, l logger.LoggerV1) *job.RankingJob {
 	return job.NewRankingJob(svc, l, client, time.Second*30)
 }
 
-func InitJobs(l logger.V1, rjob *job.RankingJob) *cron.Cron {
+func InitJobs(l logger.LoggerV1, rjob *job.RankingJob) *cron.Cron {
 	builder := job.NewCronJobBuilder(l, prometheus.SummaryOpts{
 		Namespace: "geekbang_zl",
 		Subsystem: "webook",

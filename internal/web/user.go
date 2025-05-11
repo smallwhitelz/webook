@@ -51,7 +51,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	//ug.POST("/login", h.Login)
 	ug.POST("/login", ginx.WrapBody(h.LoginJWT))
 	ug.POST("/logout", h.LogoutJWT)
-	ug.POST("/edit", ginx.WrapBodyAndClaims(h.Edit))
+	ug.POST("/edit", ginx.WrapBodyAndClaims[EditReq, ijwt.UserClaims](h.Edit))
 	ug.GET("/profile", ginx.WrapClaims(h.Profile))
 	ug.GET("/refresh_token", h.RefreshToken)
 	//ug.GET("/profileSess", h.ProfileSess)
@@ -64,6 +64,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (ginx.Result, error) {
 	ok, err := h.codeSvc.Verify(ctx, bizLogin, req.Phone, req.Code)
 	if err != nil {
+		zap.L().Error("手机验证码验证失败", zap.Error(err))
 		return ginx.Result{
 			Code: 5,
 			Msg:  "系统异常",

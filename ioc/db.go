@@ -12,7 +12,7 @@ import (
 	"webook/pkg/logger"
 )
 
-func InitDB(l logger.V1) *gorm.DB {
+func InitDB(l logger.LoggerV1) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}

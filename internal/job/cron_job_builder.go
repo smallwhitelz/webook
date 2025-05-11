@@ -9,11 +9,11 @@ import (
 )
 
 type CronJobBuilder struct {
-	l      logger.V1
+	l      logger.LoggerV1
 	vector *prometheus.SummaryVec
 }
 
-func NewCronJobBuilder(l logger.V1, opt prometheus.SummaryOpts) *CronJobBuilder {
+func NewCronJobBuilder(l logger.LoggerV1, opt prometheus.SummaryOpts) *CronJobBuilder {
 	vector := prometheus.NewSummaryVec(opt, []string{"job", "success"})
 	return &CronJobBuilder{
 		l:      l,

@@ -8,8 +8,10 @@ import (
 	"webook/pkg/logger"
 )
 
-var L logger.V1 = logger.NewNopLogger()
+// 受制于泛型，我们这里只能使用包变量，我深恶痛绝的包变量
+var L logger.LoggerV1 = logger.NewNoOpLogger()
 
+// 包变量导致我们这个地方的代码非常垃圾
 var vector *prometheus.CounterVec
 
 func InitCount(opt prometheus.CounterOpts) {
@@ -17,10 +19,12 @@ func InitCount(opt prometheus.CounterOpts) {
 	prometheus.MustRegister(vector)
 }
 
+func SetLogger(l logger.LoggerV1) {
+	L = l
+}
+
 // WrapBodyAndClaims bizFn 就是你的业务逻辑
-func WrapBodyAndClaims[Req any, Claims any](
-	bizFn func(ctx *gin.Context, req Req, uc Claims) (Result, error),
-) gin.HandlerFunc {
+func WrapBodyAndClaims[Req any, Claims any](bizFn func(ctx *gin.Context, req Req, uc Claims) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req Req
 		if err := ctx.Bind(&req); err != nil {

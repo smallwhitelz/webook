@@ -26,7 +26,7 @@ type InteractiveRepository interface {
 type CachedInteractiveRepository struct {
 	dao   dao.InteractiveDAO
 	cache cache.InteractiveCache
-	l     logger.V1
+	l     logger.LoggerV1
 }
 
 func (c *CachedInteractiveRepository) GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error) {
@@ -115,7 +115,7 @@ func (c *CachedInteractiveRepository) DecrLike(ctx context.Context, biz string, 
 	return c.cache.DecrLikeCntIfPresent(ctx, biz, id)
 }
 
-func NewCachedInteractiveRepository(dao dao.InteractiveDAO, cache cache.InteractiveCache, l logger.V1) InteractiveRepository {
+func NewCachedInteractiveRepository(dao dao.InteractiveDAO, cache cache.InteractiveCache, l logger.LoggerV1) InteractiveRepository {
 	return &CachedInteractiveRepository{dao: dao, cache: cache, l: l}
 }
 
