@@ -2,13 +2,13 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"gorm.io/gorm"
 	"time"
 	"webook/internal/domain"
 	"webook/internal/repository/cache"
 	"webook/internal/repository/dao"
+	"webook/pkg/logger"
 )
 
 type ArticleRepository interface {
@@ -32,6 +32,7 @@ type CachedArticleRepository struct {
 	authorDAO dao.ArticleAuthorDAO
 
 	db *gorm.DB
+	l  logger.LoggerV1
 }
 
 func (c *CachedArticleRepository) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
@@ -154,7 +155,6 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		fmt.Println("------------", art.Author.Id)
 		user, er := c.userRepo.FindById(ctx, art.Author.Id)
 
 		if er != nil {
@@ -229,11 +229,12 @@ func (c *CachedArticleRepository) SyncV2(ctx context.Context, art domain.Article
 	return id, err
 }
 
-func NewCachedArticleRepository(dao dao.ArticleDao, userRepo UserRepository, cache cache.ArticleCache) ArticleRepository {
+func NewCachedArticleRepository(dao dao.ArticleDao, userRepo UserRepository, cache cache.ArticleCache, l logger.LoggerV1) ArticleRepository {
 	return &CachedArticleRepository{
 		dao:      dao,
 		cache:    cache,
 		userRepo: userRepo,
+		l:        l,
 	}
 }
 
@@ -251,6 +252,9 @@ func (c *CachedArticleRepository) Create(ctx context.Context, art domain.Article
 		er := c.cache.DelFirstPage(ctx, art.Author.Id)
 		if er != nil {
 			// 也要记录日志
+			c.l.Error("插入新数据成功后，删除缓存第一页数据失败",
+				logger.Int64("uid", art.Author.Id),
+				logger.Error(err))
 		}
 	}
 	return id, err
@@ -262,6 +266,9 @@ func (c *CachedArticleRepository) Update(ctx context.Context, art domain.Article
 		er := c.cache.DelFirstPage(ctx, art.Author.Id)
 		if er != nil {
 			// 也要记录日志
+			c.l.Error("更新数据成功后，删除缓存第一页数据失败",
+				logger.Int64("uid", art.Author.Id),
+				logger.Error(err))
 		}
 	}
 	return err

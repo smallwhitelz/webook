@@ -136,7 +136,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 
 			// 构造handler
 			svc, intrSvc := tc.mock(ctrl)
-			hdl := NewArticleHandler(svc, logger.NewNopLogger(), intrSvc)
+			hdl := NewArticleHandler(svc, logger.NewNoOpLogger(), intrSvc)
 
 			// 准备服务器和构造路由
 			server := gin.Default()

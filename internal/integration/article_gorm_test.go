@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
@@ -13,14 +14,17 @@ import (
 	"webook/internal/integration/startup"
 	"webook/internal/repository/dao"
 	ijwt "webook/internal/web/jwt"
+	"webook/pkg/ginx"
 )
 
+// 这种用法叫做测试套件
 type ArticleHandlerSuite struct {
 	suite.Suite
 	db     *gorm.DB
 	server *gin.Engine
 }
 
+// SetupSuite 所有测试方法运行前会执行一次，只执行一次
 func (s *ArticleHandlerSuite) SetupSuite() {
 	s.db = startup.InitDB()
 	hdl := startup.InitArticleHandler(dao.NewArticleGORMDAO(s.db))
@@ -32,6 +36,12 @@ func (s *ArticleHandlerSuite) SetupSuite() {
 	})
 	hdl.RegisterRoutes(server)
 	s.server = server
+	ginx.InitCount(prometheus.CounterOpts{
+		Namespace: "geektime_zl",
+		Subsystem: "webook",
+		Name:      "biz_code",
+		Help:      "统计业务错误码	",
+	})
 }
 
 func (s *ArticleHandlerSuite) TestArticle_Publish() {
@@ -352,7 +362,6 @@ func (s *ArticleHandlerSuite) TestEdit() {
 			},
 			wantCode: http.StatusOK,
 			wantRes: Result[int64]{
-				// 我希望的是id为1
 				Data: 2,
 			},
 		},
@@ -421,6 +430,7 @@ func (s *ArticleHandlerSuite) TestEdit() {
 	}
 }
 
+// TearDownTest 回调机制，每个测试执行后都会执行这一步
 func (s *ArticleHandlerSuite) TearDownTest() {
 	err := s.db.Exec("truncate table `articles`").Error
 	assert.NoError(s.T(), err)
@@ -428,6 +438,7 @@ func (s *ArticleHandlerSuite) TearDownTest() {
 	assert.NoError(s.T(), err)
 }
 
+// TestArticleHandler 测试入口
 func TestArticleHandler(t *testing.T) {
 	suite.Run(t, &ArticleHandlerSuite{})
 }

@@ -31,6 +31,25 @@ type articleService struct {
 	l          logger.LoggerV1
 }
 
+func (a *articleService) Save(ctx context.Context, art domain.Article) (int64, error) {
+	art.Status = domain.ArticleStatusUnpublished
+	if art.Id > 0 {
+		err := a.repo.Update(ctx, art)
+		return art.Id, err
+	} else {
+		return a.repo.Create(ctx, art)
+	}
+}
+
+func (a *articleService) Publish(ctx context.Context, art domain.Article) (int64, error) {
+	art.Status = domain.ArticleStatusPublished
+	return a.repo.Sync(ctx, art)
+}
+
+func (a *articleService) Withdraw(ctx context.Context, uid int64, id int64) error {
+	return a.repo.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
+}
+
 func (a *articleService) ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error) {
 	return a.repo.ListPub(ctx, start, offset, limit)
 }
@@ -64,6 +83,15 @@ func (a *articleService) GetByAuthor(ctx context.Context, uid int64, offset int,
 	return a.repo.GetByAuthor(ctx, uid, offset, limit)
 }
 
+func NewArticleService(repo repository.ArticleRepository, producer article.Producer) ArticleService {
+	return &articleService{
+		repo:     repo,
+		producer: producer,
+	}
+}
+
+// NewArticleServiceV1 在service层同步数据，
+// 采用两个repo
 func NewArticleServiceV1(readerRepo repository.ArticleReaderRepository,
 	authorRepo repository.ArticleAuthorRepository, l logger.LoggerV1) *articleService {
 	return &articleService{
@@ -73,32 +101,10 @@ func NewArticleServiceV1(readerRepo repository.ArticleReaderRepository,
 	}
 }
 
-func NewArticleService(repo repository.ArticleRepository, producer article.Producer) ArticleService {
-	return &articleService{
-		repo:     repo,
-		producer: producer,
-	}
-}
-
-func (a *articleService) Save(ctx context.Context, art domain.Article) (int64, error) {
-	art.Status = domain.ArticleStatusUnpublished
-	if art.Id > 0 {
-		err := a.repo.Update(ctx, art)
-		return art.Id, err
-	} else {
-		return a.repo.Create(ctx, art)
-	}
-}
-
-func (a *articleService) Publish(ctx context.Context, art domain.Article) (int64, error) {
-	art.Status = domain.ArticleStatusPublished
-	return a.repo.Sync(ctx, art)
-}
-
-func (a *articleService) Withdraw(ctx context.Context, uid int64, id int64) error {
-	return a.repo.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
-}
-
+// PublishV1 这里可以开启数据库事务吗？
+// 不可以，对于service来说，你不知道repo是用什么实现的
+// 就算是mysql，事务这个东西只对同一个库不同表有效，这里万一分库分表也不适用
+// 所以service这一层不建议开事务
 func (a *articleService) PublishV1(ctx context.Context, art domain.Article) (int64, error) {
 	// 先操作制作库
 	// 这里操作线上库
@@ -115,6 +121,8 @@ func (a *articleService) PublishV1(ctx context.Context, art domain.Article) (int
 		return 0, err
 	}
 	art.Id = id
+
+	// 一般不急着引入重试，可以上线后看看这里失败率
 	for i := 0; i < 3; i++ {
 		// 我可能线上库已经有数据了
 		// 也可能没有

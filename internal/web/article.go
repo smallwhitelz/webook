@@ -33,7 +33,10 @@ func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc se
 
 func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("/articles")
+	// 新增和修改接口
 	g.POST("/edit", ginx.WrapBodyAndClaims(h.Edit))
+
+	// 发表接口
 	g.POST("/publish", ginx.WrapBodyAndClaims(h.Publish))
 	g.POST("/withdraw", ginx.WrapBodyAndClaims(h.Withdraw))
 
@@ -61,8 +64,12 @@ func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleEditReq, uc jwt.UserC
 		},
 	})
 	if err != nil {
+		h.l.Error("保存文章数据失败",
+			logger.Int64("uid", uc.Uid),
+			logger.Error(err))
 		return ginx.Result{
-			Msg: "系统错误",
+			Code: 5,
+			Msg:  "系统错误",
 		}, err
 	}
 	return ginx.Result{

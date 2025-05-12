@@ -196,7 +196,7 @@ func Test_articleService_Publish(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			authorRepo, readerRepo := tc.mock(ctrl)
-			svc := NewArticleServiceV1(readerRepo, authorRepo, logger.NewNopLogger())
+			svc := NewArticleServiceV1(readerRepo, authorRepo, logger.NewNoOpLogger())
 			id, err := svc.PublishV1(context.Background(), tc.art)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantId, id)
