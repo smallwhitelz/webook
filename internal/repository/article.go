@@ -174,78 +174,6 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 	return id, err
 }
 
-// SyncV1 非事务实现，不同数据库
-func (c *CachedArticleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
-	artn := c.toEntity(art)
-	var (
-		id  = art.Id
-		err error
-	)
-	if id > 0 {
-		err = c.authorDAO.Update(ctx, artn)
-	} else {
-		id, err = c.authorDAO.Create(ctx, artn)
-	}
-	if err != nil {
-		return 0, err
-	}
-	artn.Id = id
-	err = c.readerDAO.Upsert(ctx, artn)
-	return id, err
-}
-
-// SyncV2 开启事务
-// 缺陷：强制Repository引入db，相当于Repository强制依赖了DAO依赖的东西
-// 没有坚持面向接口编程原则
-// 跨层依赖
-func (c *CachedArticleRepository) SyncV2(ctx context.Context, art domain.Article) (int64, error) {
-	tx := c.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return 0, tx.Error
-	}
-	// 防止后面业务panic
-	defer tx.Rollback()
-	authorDAO := dao.NewArticleGORMAuthorDAO(tx)
-	readerDAO := dao.NewArticleGORMReaderDAO(tx)
-	artn := c.toEntity(art)
-	var (
-		id  = art.Id
-		err error
-	)
-	if id > 0 {
-		err = authorDAO.Update(ctx, artn)
-	} else {
-		id, err = authorDAO.Create(ctx, artn)
-	}
-	if err != nil {
-		return 0, err
-	}
-	artn.Id = id
-	err = readerDAO.UpsertV2(ctx, dao.PublishedArticle(artn))
-	if err != nil {
-		return 0, err
-	}
-	tx.Commit()
-	return id, err
-}
-
-func NewCachedArticleRepository(dao dao.ArticleDao, userRepo UserRepository, cache cache.ArticleCache, l logger.LoggerV1) ArticleRepository {
-	return &CachedArticleRepository{
-		dao:      dao,
-		cache:    cache,
-		userRepo: userRepo,
-		l:        l,
-	}
-}
-
-func NewCachedArticleRepositoryV2(readerDAO dao.ArticleReaderDAO,
-	authorDAO dao.ArticleAuthorDAO) *CachedArticleRepository {
-	return &CachedArticleRepository{
-		readerDAO: readerDAO,
-		authorDAO: authorDAO,
-	}
-}
-
 func (c *CachedArticleRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
 	id, err := c.dao.Insert(ctx, c.toEntity(art))
 	if err == nil {
@@ -272,6 +200,84 @@ func (c *CachedArticleRepository) Update(ctx context.Context, art domain.Article
 		}
 	}
 	return err
+}
+
+func NewCachedArticleRepository(dao dao.ArticleDao, userRepo UserRepository, cache cache.ArticleCache, l logger.LoggerV1) ArticleRepository {
+	return &CachedArticleRepository{
+		dao:      dao,
+		cache:    cache,
+		userRepo: userRepo,
+		l:        l,
+	}
+}
+
+// SyncV1 非事务实现，不同数据库
+// repo层同步制作库和线上库数据，操作两个dao
+func (c *CachedArticleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
+	artn := c.toEntity(art)
+	var (
+		id  = art.Id
+		err error
+	)
+	if id > 0 {
+		err = c.authorDAO.Update(ctx, artn)
+	} else {
+		id, err = c.authorDAO.Create(ctx, artn)
+	}
+	if err != nil {
+		return 0, err
+	}
+	artn.Id = id
+	err = c.readerDAO.Upsert(ctx, artn)
+	return id, err
+}
+
+// SyncV2 开启事务，同一个数据库不同表的实现
+// 缺陷：强制Repository引入db，相当于Repository强制依赖了DAO依赖的东西
+// 没有坚持面向接口编程原则
+// 跨层依赖
+func (c *CachedArticleRepository) SyncV2(ctx context.Context, art domain.Article) (int64, error) {
+	// 开启事务
+	tx := c.db.WithContext(ctx).Begin()
+	// 检测事务是否开启成功
+	if tx.Error != nil {
+		return 0, tx.Error
+	}
+	// 防止后面业务panic
+	defer tx.Rollback()
+	authorDAO := dao.NewArticleGORMAuthorDAO(tx)
+	readerDAO := dao.NewArticleGORMReaderDAO(tx)
+	artn := c.toEntity(art)
+	var (
+		id  = art.Id
+		err error
+	)
+	if id > 0 {
+		err = authorDAO.Update(ctx, artn)
+	} else {
+		id, err = authorDAO.Create(ctx, artn)
+	}
+	if err != nil {
+		return 0, err
+	}
+	artn.Id = id
+	err = readerDAO.UpsertV2(ctx, dao.PublishedArticle(artn))
+	if err != nil {
+		return 0, err
+	}
+	// 提交事务
+	tx.Commit()
+	return id, err
+}
+
+// NewCachedArticleRepositoryV2 这里是在repo层分发
+// 操作的是dao层
+func NewCachedArticleRepositoryV2(readerDAO dao.ArticleReaderDAO,
+	authorDAO dao.ArticleAuthorDAO) *CachedArticleRepository {
+	return &CachedArticleRepository{
+		readerDAO: readerDAO,
+		authorDAO: authorDAO,
+	}
 }
 
 func (c *CachedArticleRepository) toEntity(art domain.Article) dao.Article {

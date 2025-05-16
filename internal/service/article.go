@@ -91,7 +91,7 @@ func NewArticleService(repo repository.ArticleRepository, producer article.Produ
 }
 
 // NewArticleServiceV1 在service层同步数据，
-// 采用两个repo
+// 采用两个repo，这里相当于在service层分发 操作repo
 func NewArticleServiceV1(readerRepo repository.ArticleReaderRepository,
 	authorRepo repository.ArticleAuthorRepository, l logger.LoggerV1) *articleService {
 	return &articleService{
