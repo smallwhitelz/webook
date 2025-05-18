@@ -138,6 +138,9 @@ func (c *CachedArticleRepository) SyncStatus(ctx context.Context, uid int64, id 
 		er := c.cache.DelFirstPage(ctx, uid)
 		if er != nil {
 			// 也要记录日志
+			c.l.Error("删除缓存第一页失败",
+				logger.Int64("uid", uid),
+				logger.Error(er))
 		}
 	}
 	return err

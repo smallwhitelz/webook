@@ -77,7 +77,7 @@ func (a *ArticleGORMDAO) SyncStatus(ctx context.Context, uid int64, id int64, st
 	})
 }
 
-// Sync 闭包写法
+// Sync 闭包写法，我们不用去主动管事务
 func (a *ArticleGORMDAO) Sync(ctx context.Context, art Article) (int64, error) {
 	var id = art.Id
 	err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -99,7 +99,7 @@ func (a *ArticleGORMDAO) Sync(ctx context.Context, art Article) (int64, error) {
 		pubArt.Ctime = now
 		pubArt.Utime = now
 		err = tx.Clauses(clause.OnConflict{
-			// 对mysql不起效，但是可以兼容别的方言
+			// Columns 对mysql不起效，但是可以兼容别的方言
 			// INSERT xxx ON DUPLICATE KEY SET `title`=?
 			Columns: []clause.Column{{Name: "id"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{

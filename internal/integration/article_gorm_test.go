@@ -300,6 +300,7 @@ func (s *ArticleHandlerSuite) TestEdit() {
 				assert.NoError(t, err)
 				assert.True(t, art.Ctime > 0)
 				assert.True(t, art.Utime > 0)
+				// 创建的时候我们也不知道ctime和utime是多少，只知道一定大于0，这里在后面比较的时候置为0
 				art.Ctime = 0
 				art.Utime = 0
 				assert.Equal(t, dao.Article{
