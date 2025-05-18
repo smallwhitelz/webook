@@ -86,6 +86,7 @@ func (s *MongoDBTestSuite) TestIn() {
 	s.T().Log("查询结果", arts)
 }
 
+// TestIndexes 创建索引
 func (s *MongoDBTestSuite) TestIndexes() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

@@ -76,6 +76,7 @@ func InitWebServer() *gin.Engine {
 //	return &async.Service{}
 //}
 
+// InitArticleHandler 这里采用注入dao的形式方便我们去测试不同的数据存储，例如mysql、mongodb、oss
 func InitArticleHandler(dao dao.ArticleDao) *web.ArticleHandler {
 	wire.Build(
 		thirdPartySet,

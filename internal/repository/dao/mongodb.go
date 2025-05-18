@@ -11,8 +11,11 @@ import (
 )
 
 type MongoDBArticleDAO struct {
-	node    *snowflake.Node
-	col     *mongo.Collection
+	// 因为mongodb不会生成自增主键，所以这里我们采用雪花算法生成唯一id
+	node *snowflake.Node
+	// 制作库
+	col *mongo.Collection
+	// 线上库
 	liveCol *mongo.Collection
 
 	// mongodb事务
