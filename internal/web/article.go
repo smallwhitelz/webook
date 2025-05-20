@@ -48,6 +48,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	// 返回文章列表
 	g.POST("/list", h.List)
 
+	// 读者接口
 	pub := g.Group("/pub")
 	pub.GET("/:id", h.PubDetail)
 	// 传入一个参数，true就是点赞，false就是不点赞

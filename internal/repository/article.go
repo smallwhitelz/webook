@@ -69,6 +69,7 @@ func (c *CachedArticleRepository) GetPubById(ctx context.Context, id int64) (dom
 		er := c.cache.SetPub(ctx, res)
 		if er != nil {
 			// 记录日志
+			c.l.Error("读者接口，放入文章缓存失败", logger.Int64("aid", id), logger.Error(er))
 		}
 	}()
 	return res, nil
@@ -166,6 +167,7 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 		}
 	}
 	// 在这里尝试设置缓存
+	// 我们认为，当一条帖子发表，他会立刻有人访问，所以在这里也可以设置缓存
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
@@ -173,6 +175,7 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 
 		if er != nil {
 			// 记录日志
+			c.l.Error("发表帖子查询作者失败", logger.Int64("aid", art.Id), logger.Error(er))
 			return
 		}
 		art.Author = domain.Author{
@@ -180,9 +183,12 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 			Name: user.Nickname,
 		}
 		// 你可以灵活设置过期时间
+		// 1. 比如可以给大V设置超长过期时间，因为粉丝多，短时间发一篇文章，粉丝在几天内都会读完
+		// 2. 如果是一个普通写手，文章很久才被人偶然访问一次，就可以设置短一点的过期时间
 		er = c.cache.SetPub(ctx, art)
 		if er != nil {
 			// 记录日志
+			c.l.Error("发表帖子设置缓存失败", logger.Int64("aid", art.Id), logger.Error(er))
 		}
 	}()
 	return id, err
@@ -332,6 +338,9 @@ func (c *CachedArticleRepository) preCache(ctx context.Context, arts []domain.Ar
 		err := c.cache.Set(ctx, arts[0])
 		if err != nil {
 			// 记录缓存
+			c.l.Error("缓存列表第一条数据失败",
+				logger.Int64("aid", arts[0].Id),
+				logger.Error(err))
 		}
 	}
 }
