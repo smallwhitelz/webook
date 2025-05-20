@@ -57,6 +57,7 @@ func (a *ArticleS3DAO) Sync(ctx context.Context, art Article) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	// 同步到oss
 	_, err = a.oss.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket:      ekit.ToPtr[string]("webook-1314583317"),
 		Key:         ekit.ToPtr[string](strconv.FormatInt(art.Id, 10)),

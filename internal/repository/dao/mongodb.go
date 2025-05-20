@@ -11,7 +11,7 @@ import (
 )
 
 type MongoDBArticleDAO struct {
-	// 因为mongodb不会生成自增主键，所以这里我们采用雪花算法生成唯一id
+	// 因为mongodb生成的id是12字节的，所以这里我们采用雪花算法生成唯一id
 	node *snowflake.Node
 	// 制作库
 	col *mongo.Collection

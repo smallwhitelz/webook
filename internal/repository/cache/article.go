@@ -61,7 +61,9 @@ func (a *ArticleRedisCache) SetPub(ctx context.Context, art domain.Article) erro
 
 func (a *ArticleRedisCache) GetFirstPage(ctx context.Context, uid int64) ([]domain.Article, error) {
 	key := a.firstKey(uid)
+	// 返回string
 	//val, err := a.client.Get(ctx, firstKey).Result()
+	// 返回byte数组
 	val, err := a.client.Get(ctx, key).Bytes()
 	if err != nil {
 		return nil, err
@@ -72,6 +74,7 @@ func (a *ArticleRedisCache) GetFirstPage(ctx context.Context, uid int64) ([]doma
 }
 
 func (a *ArticleRedisCache) SetFirstPage(ctx context.Context, uid int64, arts []domain.Article) error {
+	// 这里只缓存摘要，列表显示没必要显示内容
 	for i := 0; i < len(arts); i++ {
 		arts[i].Content = arts[i].Abstract()
 	}

@@ -41,9 +41,11 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.POST("/withdraw", ginx.WrapBodyAndClaims(h.Withdraw))
 
 	// 创作者接口
+	// 返回文章详情
 	g.GET("/detail/:id", h.Detail)
 	// 按道理来说，这边就是get方法
 	// /list?offset=?&limit=?
+	// 返回文章列表
 	g.POST("/list", h.List)
 
 	pub := g.Group("/pub")

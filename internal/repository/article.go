@@ -74,6 +74,7 @@ func (c *CachedArticleRepository) GetPubById(ctx context.Context, id int64) (dom
 	return res, nil
 }
 
+// GetById 获取单个文章详情接口
 func (c *CachedArticleRepository) GetById(ctx context.Context, id int64) (domain.Article, error) {
 	res, err := c.cache.Get(ctx, id)
 	if err == nil {
@@ -88,11 +89,13 @@ func (c *CachedArticleRepository) GetById(ctx context.Context, id int64) (domain
 		er := c.cache.Set(ctx, res)
 		if er != nil {
 			// 记录日志
+			c.l.Error("设置文章详情缓存失败", logger.Int64("aid", id), logger.Error(er))
 		}
 	}()
 	return res, nil
 }
 
+// GetByAuthor 创作者查询列表接口
 func (c *CachedArticleRepository) GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error) {
 	// 首先第一步，判定要不要查缓存
 	// 事实上，limit <= 100 都可以查询缓存
@@ -103,6 +106,7 @@ func (c *CachedArticleRepository) GetByAuthor(ctx context.Context, uid int64, of
 		} else {
 			// 要考虑记录日志
 			// 缓存未命中，你是可以忽略的
+			c.l.Error("查询缓存第一页失败", logger.Int64("uid", uid), logger.Error(err))
 		}
 	}
 	arts, err := c.dao.GetByAuthor(ctx, uid, offset, limit)
@@ -121,6 +125,7 @@ func (c *CachedArticleRepository) GetByAuthor(ctx context.Context, uid int64, of
 			if err != nil {
 				// 记录日志
 				// 我需要监控这里
+				c.l.Error("缓存第一页失败", logger.Int64("uid", uid), logger.Error(err))
 			}
 		}
 	}()
@@ -132,6 +137,7 @@ func (c *CachedArticleRepository) GetByAuthor(ctx context.Context, uid int64, of
 	return res, nil
 }
 
+// SyncStatus 同步文章状态接口，这里是将文章设置为不可见
 func (c *CachedArticleRepository) SyncStatus(ctx context.Context, uid int64, id int64, status domain.ArticleStatus) error {
 	err := c.dao.SyncStatus(ctx, uid, id, status.ToUint8())
 	if err == nil {
@@ -146,12 +152,17 @@ func (c *CachedArticleRepository) SyncStatus(ctx context.Context, uid int64, id 
 	return err
 }
 
+// Sync 在dao层操作制作库和线上库，用于发表文章
 func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) (int64, error) {
 	id, err := c.dao.Sync(ctx, c.toEntity(art))
 	if err == nil {
 		er := c.cache.DelFirstPage(ctx, art.Author.Id)
 		if er != nil {
 			// 也要记录日志
+			c.l.Error("删除缓存第一页失败",
+				logger.Int64("aid", art.Id),
+				logger.Int64("uid", art.Author.Id),
+				logger.Error(er))
 		}
 	}
 	// 在这里尝试设置缓存
@@ -177,13 +188,15 @@ func (c *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) 
 	return id, err
 }
 
+// Create 新增文章
 func (c *CachedArticleRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
 	id, err := c.dao.Insert(ctx, c.toEntity(art))
 	if err == nil {
 		er := c.cache.DelFirstPage(ctx, art.Author.Id)
 		if er != nil {
 			// 也要记录日志
-			c.l.Error("插入新数据成功后，删除缓存第一页数据失败",
+			c.l.Error("新增新数据成功后，删除缓存第一页数据失败",
+				logger.Int64("aid", id),
 				logger.Int64("uid", art.Author.Id),
 				logger.Error(err))
 		}
@@ -191,6 +204,7 @@ func (c *CachedArticleRepository) Create(ctx context.Context, art domain.Article
 	return id, err
 }
 
+// 修改文章
 func (c *CachedArticleRepository) Update(ctx context.Context, art domain.Article) error {
 	err := c.dao.UpdateById(ctx, c.toEntity(art))
 	if err == nil {
@@ -198,6 +212,7 @@ func (c *CachedArticleRepository) Update(ctx context.Context, art domain.Article
 		if er != nil {
 			// 也要记录日志
 			c.l.Error("更新数据成功后，删除缓存第一页数据失败",
+				logger.Int64("aid", art.Id),
 				logger.Int64("uid", art.Author.Id),
 				logger.Error(err))
 		}
@@ -307,8 +322,12 @@ func (c *CachedArticleRepository) toDomain(art dao.Article) domain.Article {
 	}
 }
 
+// preCache 预加载，我们猜测，客户加载完列表一般情况下会访问第一条数据，所以我们默认缓存第一条
+// 这在高并发下场景下非常有用
 func (c *CachedArticleRepository) preCache(ctx context.Context, arts []domain.Article) {
 	const size = 1024 * 1024
+	// 不缓存大对象，没有意义
+	// 但是也不是说所有的大对象都不缓存，一定还是根据业务的相关性进行抉择
 	if len(arts) > 0 && len(arts[0].Content) < size {
 		err := c.cache.Set(ctx, arts[0])
 		if err != nil {
