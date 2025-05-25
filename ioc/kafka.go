@@ -33,6 +33,7 @@ func InitSyncProducer(c sarama.Client) sarama.SyncProducer {
 	return p
 }
 
+// InitConsumers wire没有办法找到同类型的所有实现，所以逼不得已只能写这种代码
 func InitConsumers(c1 *article.InteractiveReadEventConsumer) []events.Consumer {
 	return []events.Consumer{c1}
 }

@@ -14,6 +14,7 @@ func TestConsumer(t *testing.T) {
 	cfg := sarama.NewConfig()
 	consumer, err := sarama.NewConsumerGroup(addr, "demo", cfg)
 	assert.NoError(t, err)
+	// 超时或者主动调用cancel都会推出消费者
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
 	start := time.Now()
@@ -27,8 +28,13 @@ type ConsumerHandler struct {
 
 func (c *ConsumerHandler) Setup(session sarama.ConsumerGroupSession) error {
 	log.Println("这是 Setup")
+
+	// 不建议这样重制偏移量，会出现结果可能不对，建议用kafka内部提供的shell脚本去重制
+	// 拿到分区
 	//partitions := session.Claims()["test_topic"]
+	//
 	//var offset int64 = 0
+	//// 遍历
 	//for _, part := range partitions {
 	//	session.ResetOffset("test_topic", part, offset, "")
 	//}
@@ -40,6 +46,7 @@ func (c *ConsumerHandler) Cleanup(session sarama.ConsumerGroupSession) error {
 	return nil
 }
 
+// ConsumeClaim 异步批量消费
 func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	msgs := claim.Messages()
 	const batchSize = 10
@@ -48,6 +55,7 @@ func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		log.Println("一个批次开始")
 		batch := make([]*sarama.ConsumerMessage, 0, batchSize)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		// 标记位，如果没有凑够10条，超时了就提交，否则一直等待会阻塞
 		var done = false
 		for i := 0; i < batchSize && !done; i++ {
 			select {
@@ -66,10 +74,6 @@ func (c *ConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 					return nil
 				})
 			}
-			// 合并到上面&&
-			//if done {
-			//	break
-			//}
 		}
 		cancel()
 		err := eg.Wait()
@@ -92,6 +96,7 @@ func (c *ConsumerHandler) ConsumeClaimV1(session sarama.ConsumerGroupSession, cl
 	msgs := claim.Messages()
 	for msg := range msgs {
 		log.Println(string(msg.Value))
+		// 提交
 		session.MarkMessage(msg, "")
 	}
 	return nil

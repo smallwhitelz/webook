@@ -12,12 +12,13 @@ func TestSyncProducer(t *testing.T) {
 	cfg := sarama.NewConfig()
 	cfg.Producer.Return.Successes = true
 	producer, err := sarama.NewSyncProducer(addr, cfg)
-	cfg.Producer.Partitioner = sarama.NewRoundRobinPartitioner
-	//cfg.Producer.Partitioner = sarama.NewRandomPartitioner
-	//cfg.Producer.Partitioner = sarama.NewHashPartitioner
-	//cfg.Producer.Partitioner = sarama.NewManualPartitioner
-	//cfg.Producer.Partitioner = sarama.NewConsistentCRCHashPartitioner
-	//cfg.Producer.Partitioner = sarama.NewCustomPartitioner()
+	// 最典型的场景，利用Partitioner来保证同一个业务的消息一定发送在同一个分区，从而保证业务消息的有序性
+	cfg.Producer.Partitioner = sarama.NewRoundRobinPartitioner // 轮训
+	//cfg.Producer.Partitioner = sarama.NewRandomPartitioner // 随机
+	//cfg.Producer.Partitioner = sarama.NewHashPartitioner // 根据Key进行Hash
+	//cfg.Producer.Partitioner = sarama.NewManualPartitioner // 手动指定
+	//cfg.Producer.Partitioner = sarama.NewConsistentCRCHashPartitioner // 一致性hash，很少用
+	//cfg.Producer.Partitioner = sarama.NewCustomPartitioner() // 自定义hash
 	assert.NoError(t, err)
 	for i := 0; i < 100; i++ {
 		_, _, err = producer.SendMessage(&sarama.ProducerMessage{

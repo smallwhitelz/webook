@@ -41,7 +41,7 @@ func InitWebServer() *App {
 	userHandler := web.NewUserHandler(userService, handler, codeService)
 	articleDao := dao.NewArticleGORMDAO(db)
 	articleCache := cache.NewArticleRedisCache(cmdable)
-	articleRepository := repository.NewCachedArticleRepository(articleDao, userRepository, articleCache)
+	articleRepository := repository.NewCachedArticleRepository(articleDao, userRepository, articleCache, loggerV1)
 	client := ioc.InitSaramaClient()
 	syncProducer := ioc.InitSyncProducer(client)
 	producer := article.NewSaramaSyncProducer(syncProducer)

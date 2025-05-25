@@ -57,6 +57,7 @@ func (dao *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context,
 	cb.Ctime = now
 	cb.Utime = now
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 收藏这里没有Upsert语义，删除就是删除
 		err := tx.Create(&cb).Error
 		if err != nil {
 			return err
@@ -78,6 +79,8 @@ func (dao *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context,
 
 func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error {
 	now := time.Now().UnixMilli()
+	// 开启事务，因为操作两张表
+	// 这边是Upsert语义
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := tx.Clauses(clause.OnConflict{
 			DoUpdates: clause.Assignments(map[string]interface{}{
@@ -113,6 +116,7 @@ func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, b
 func (dao *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error {
 	now := time.Now().UnixMilli()
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 这边是Update语义
 		err := tx.Model(&UserLikeBiz{}).
 			Where("uid=? AND biz_id=? AND biz=?", uid, bizId, biz).
 			Updates(map[string]interface{}{
@@ -164,6 +168,7 @@ func (dao *GORMInteractiveDAO) IncrReadCnt(ctx context.Context, biz string, bizI
 	}).Error
 }
 
+// UserLikeBiz 记录用户的点赞信息
 type UserLikeBiz struct {
 	Id     int64  `gorm:"primaryKey,autoIncrement"`
 	Uid    int64  `gorm:"uniqueIndex:biz_type_id"`
@@ -186,6 +191,7 @@ type UserCollectionBiz struct {
 	Utime  int64
 }
 
+// Interactive 记录某个业务的点赞数
 type Interactive struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
 	// <bizid,biz>

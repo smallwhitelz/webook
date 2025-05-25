@@ -9,10 +9,14 @@ import (
 
 //go:generate mockgen -source=./interactive.go -package=svcmocks -destination=./mocks/interactive.mock.go InteractiveService
 type InteractiveService interface {
+	// IncrReadCnt 增加阅读数
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
+	// Like 点赞
 	Like(ctx context.Context, biz string, id int64, uid int64) error
 	CancelLike(ctx context.Context, biz string, id int64, uid int64) error
+	// Collect 收藏
 	Collect(ctx context.Context, biz string, bizId int64, cid int64, uid int64) error
+	// Get 获取文章点赞数收藏数阅读数
 	Get(ctx context.Context, biz string, bizId int64, uid int64) (domain.Interactive, error)
 	GetByIds(ctx context.Context, biz string, ids []int64) (map[int64]domain.Interactive, error)
 }
@@ -41,11 +45,13 @@ func (i *interactiveService) Get(ctx context.Context, biz string, bizId int64, u
 	var eg errgroup.Group
 	eg.Go(func() error {
 		var er error
+		// 判断当前用户有没有对该文章点赞
 		intr.Liked, er = i.repo.Liked(ctx, biz, bizId, uid)
 		return er
 	})
 	eg.Go(func() error {
 		var er error
+		// 判断当前用户有没有对该文章收藏
 		intr.Collected, er = i.repo.Collected(ctx, biz, bizId, uid)
 		return er
 	})

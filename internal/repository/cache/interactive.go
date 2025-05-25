@@ -53,9 +53,9 @@ type InteractiveRedisCache struct {
 	client redis.Cmdable
 }
 
-func (i *InteractiveRedisCache) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
-	key := i.key(biz, bizId)
-	res, err := i.client.HGetAll(ctx, key).Result()
+func (r *InteractiveRedisCache) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
+	key := r.key(biz, bizId)
+	res, err := r.client.HGetAll(ctx, key).Result()
 	if err != nil {
 		return domain.Interactive{}, err
 	}
@@ -70,33 +70,33 @@ func (i *InteractiveRedisCache) Get(ctx context.Context, biz string, bizId int64
 	return intr, nil
 }
 
-func (i *InteractiveRedisCache) Set(ctx context.Context, biz string, bizId int64, res domain.Interactive) error {
-	key := i.key(biz, bizId)
-	err := i.client.HSet(ctx, key,
+func (r *InteractiveRedisCache) Set(ctx context.Context, biz string, bizId int64, res domain.Interactive) error {
+	key := r.key(biz, bizId)
+	err := r.client.HSet(ctx, key,
 		fieldCollectCnt, res.CollectCnt,
 		fieldReadCnt, res.ReadCnt,
 		fieldLikeCnt, res.LikeCnt).Err()
 	if err != nil {
 		return err
 	}
-	return i.client.Expire(ctx, key, time.Minute*15).Err()
+	return r.client.Expire(ctx, key, time.Minute*15).Err()
 }
 
-func (i *InteractiveRedisCache) IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error {
-	key := i.key(biz, bizId)
-	_, err := i.client.Eval(ctx, luaIncrCnt, []string{key}, fieldCollectCnt, 1).Int()
+func (r *InteractiveRedisCache) IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	key := r.key(biz, bizId)
+	_, err := r.client.Eval(ctx, luaIncrCnt, []string{key}, fieldCollectCnt, 1).Int()
 	return err
 }
 
-func (i *InteractiveRedisCache) IncrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error {
-	key := i.key(biz, bizId)
-	_, err := i.client.Eval(ctx, luaIncrCnt, []string{key}, fieldLikeCnt, 1).Int()
+func (r *InteractiveRedisCache) IncrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	key := r.key(biz, bizId)
+	_, err := r.client.Eval(ctx, luaIncrCnt, []string{key}, fieldLikeCnt, 1).Int()
 	return err
 }
 
-func (i *InteractiveRedisCache) DecrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error {
-	key := i.key(biz, bizId)
-	_, err := i.client.Eval(ctx, luaIncrCnt, []string{key}, fieldLikeCnt, -1).Int()
+func (r *InteractiveRedisCache) DecrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	key := r.key(biz, bizId)
+	_, err := r.client.Eval(ctx, luaIncrCnt, []string{key}, fieldLikeCnt, -1).Int()
 	return err
 }
 
@@ -106,10 +106,11 @@ func NewInteractiveRedisCache(client redis.Cmdable) InteractiveCache {
 	}
 }
 
-func (i *InteractiveRedisCache) IncrReadCntIfPresent(ctx context.Context, biz string, bizId int64) error {
-	key := i.key(biz, bizId)
-	_, err := i.client.Eval(ctx, luaIncrCnt, []string{key}, fieldReadCnt, 1).Int()
-	return err
+func (r *InteractiveRedisCache) IncrReadCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	key := r.key(biz, bizId)
+	// 下面两种写法都可以
+	//_, err := r.client.Eval(ctx, luaIncrCnt, []string{key}, fieldReadCnt, 1).Int()
+	return r.client.Eval(ctx, luaIncrCnt, []string{key}, fieldReadCnt, 1).Err()
 }
 
 // IncrRankingIfPresentV1 分 key 的写入
@@ -204,6 +205,6 @@ func (r *InteractiveRedisCache) rankingKey(biz string) string {
 	return fmt.Sprintf("top_100_%s", biz)
 }
 
-func (i *InteractiveRedisCache) key(biz string, bizId int64) string {
+func (r *InteractiveRedisCache) key(biz string, bizId int64) string {
 	return fmt.Sprintf("interactive:%s:%d", biz, bizId)
 }

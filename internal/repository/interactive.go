@@ -104,7 +104,20 @@ func (c *CachedInteractiveRepository) IncrLike(ctx context.Context, biz string, 
 	if err != nil {
 		return err
 	}
-	return c.cache.IncrLikeCntIfPresent(ctx, biz, id)
+	err = c.cache.IncrLikeCntIfPresent(ctx, biz, id)
+	if err != nil {
+		return err
+	}
+	// 从这里开始是找出点赞数前N的数据
+	err = c.cache.IncrRankingIfPresent(ctx, biz, id)
+	if err == cache.RankingUpdateErr {
+		val, err := c.dao.Get(ctx, biz, id)
+		if err != nil {
+			return err
+		}
+		return c.cache.SetRankingScore(ctx, biz, id, val.LikeCnt)
+	}
+	return err
 }
 
 func (c *CachedInteractiveRepository) DecrLike(ctx context.Context, biz string, id int64, uid int64) error {

@@ -223,6 +223,8 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 
 	eg.Go(func() error {
 		var er error
+		// 这里引入kafka，在获取单个文章详情的时候
+		// 就发送一条消息到kafka，从而增加阅读数
 		art, er = h.svc.GetPubById(ctx, id, uc.Uid)
 		return er
 	})
@@ -247,6 +249,9 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 			logger.Error(err))
 		return
 	}
+	// 可以同步也可以异步
+	// 这里是没有引入kafka前的写法
+	//err = h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
 	//go func() {
 	//	// 1. 如果你想摆脱原本主链路的超时控制，你就创建一个新的
 	//	// 2. 如果你不想，就直接用ctx
@@ -289,6 +294,10 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req ArticleLikeReq, uc jwt.UserC
 		err = h.intrSvc.CancelLike(ctx, h.biz, req.Id, uc.Uid)
 	}
 	if err != nil {
+		h.l.Error("点赞/取消点赞失败",
+			logger.Int64("uid", uc.Uid),
+			logger.Int64("aid", req.Id),
+			logger.Error(err))
 		return ginx.Result{
 			Msg:  "系统错误",
 			Code: 5,
@@ -302,6 +311,10 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req ArticleLikeReq, uc jwt.UserC
 func (h *ArticleHandler) Collect(ctx *gin.Context, req ArticleCollectReq, uc jwt.UserClaims) (ginx.Result, error) {
 	err := h.intrSvc.Collect(ctx, h.biz, req.Id, req.Cid, uc.Uid)
 	if err != nil {
+		h.l.Error("收藏失败",
+			logger.Int64("uid", uc.Uid),
+			logger.Int64("aid", req.Id),
+			logger.Error(err))
 		return ginx.Result{
 			Msg:  "系统错误",
 			Code: 5,

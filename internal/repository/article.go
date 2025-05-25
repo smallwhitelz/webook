@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"time"
 	"webook/internal/domain"
@@ -102,13 +103,21 @@ func (c *CachedArticleRepository) GetByAuthor(ctx context.Context, uid int64, of
 	// 事实上，limit <= 100 都可以查询缓存
 	if offset == 0 && limit == 100 {
 		res, err := c.cache.GetFirstPage(ctx, uid)
-		if err == nil {
+		switch err {
+		case nil:
 			return res, err
-		} else {
-			// 要考虑记录日志
-			// 缓存未命中，你是可以忽略的
+		case redis.Nil:
+			c.l.Warn("查询缓存第一页空数据", logger.Int64("uid", uid))
+		default:
 			c.l.Error("查询缓存第一页失败", logger.Int64("uid", uid), logger.Error(err))
 		}
+		//if err == nil {
+		//	return res, err
+		//} else {
+		//	// 要考虑记录日志
+		//	// 缓存未命中，你是可以忽略的
+		//	c.l.Error("查询缓存第一页失败", logger.Int64("uid", uid), logger.Error(err))
+		//}
 	}
 	arts, err := c.dao.GetByAuthor(ctx, uid, offset, limit)
 	if err != nil {

@@ -32,7 +32,9 @@ import (
 func InitWebServer(mdls []gin.HandlerFunc, userHdl *web.UserHandler,
 	artHdl *web.ArticleHandler,
 	wechatHdl *web.OAuth2WechatHandler) *gin.Engine {
+	//gin.SetMode(gin.ReleaseMode)
 	server := gin.Default()
+	//server := gin.New()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
 	wechatHdl.RegisterRoutes(server)

@@ -10,6 +10,7 @@ import (
 	"webook/pkg/samarax"
 )
 
+// HistoryRecordConsumer 阅读历史
 type HistoryRecordConsumer struct {
 	repo   repository.HistoryRecordRepository
 	client sarama.Client
