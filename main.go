@@ -23,6 +23,7 @@ func main() {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+		// 关闭服务器清理资源也是耗时的，这里超时直接shutdown掉trace
 		tpCancel(ctx)
 	}()
 	app := InitWebServer()

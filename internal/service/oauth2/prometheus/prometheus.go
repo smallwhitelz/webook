@@ -8,6 +8,7 @@ import (
 	"webook/internal/service/oauth2/wechat"
 )
 
+// Decorator 通过装饰器监控微信扫码验证响应时间
 type Decorator struct {
 	wechat.Service
 	sum prometheus.Summary

@@ -49,6 +49,7 @@ func TestServer(t *testing.T) {
 	server.Run(":8082")
 }
 
+// newResource 初始化，这是一个什么应用
 func newResource(serviceName, serviceVersion string) (*resource.Resource, error) {
 	return resource.Merge(resource.Default(),
 		resource.NewWithAttributes(semconv.SchemaURL,
@@ -57,6 +58,7 @@ func newResource(serviceName, serviceVersion string) (*resource.Resource, error)
 		))
 }
 
+// newTraceProvider 初始化，用zipkin去观察trace链路
 func newTraceProvider(res *resource.Resource) (*trace.TracerProvider, error) {
 	exporter, err := zipkin.New(
 		"http://43.154.97.245:9411/api/v2/spans")
@@ -73,6 +75,7 @@ func newTraceProvider(res *resource.Resource) (*trace.TracerProvider, error) {
 	return traceProvider, nil
 }
 
+// newPropagator 解决链路元数据传递
 func newPropagator() propagation.TextMapPropagator {
 	return propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},

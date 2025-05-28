@@ -80,6 +80,7 @@ func InitGinMiddlewares(redisClient redis.Cmdable, hdl ijwt.Handler, l logger.Lo
 		},
 		pb.BuildResponseTime(),
 		pb.BuildActiveRequest(),
+		// Gin接入trace
 		otelgin.Middleware("webook"),
 		ratelimit.NewBuilder(limiter.NewRedisSlidingWindowLimiter(redisClient, time.Second, 1000)).Build(),
 		middleware.NewLogMiddlewareBuilder(

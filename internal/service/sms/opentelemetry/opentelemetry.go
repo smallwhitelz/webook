@@ -7,6 +7,7 @@ import (
 	"webook/internal/service/sms"
 )
 
+// Decorator 装饰器给sms接入trace
 type Decorator struct {
 	svc    sms.Service
 	tracer trace.Tracer

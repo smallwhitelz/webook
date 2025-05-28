@@ -25,6 +25,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 		panic(err)
 	}
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
+		// gorm内部自带日志功能，利用了它内置的可插拔日志接口，将日志交给你自己项目里的 l.Debug（或其他级别）去处理。
 		//Logger: glogger.New(gormLoggerFunc(l.Debug), glogger.Config{
 		//	// 慢查询
 		//	SlowThreshold: 0,
@@ -34,11 +35,14 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
+	// 采集类似数据库连接池的一些监控数据
 	err = db.Use(prometheus.New(prometheus.Config{
-		DBName:          "webook",
+		DBName: "webook",
+		// 每15秒采集一次数据
 		RefreshInterval: 15,
 		MetricsCollector: []prometheus.MetricsCollector{
 			&prometheus.MySQL{
+				// 参数中如果有thread_running，就会设置为label
 				VariableNames: []string{"thread_running"},
 			},
 		},
@@ -46,6 +50,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
+	// 采集数据库crud响应的监控数据
 	cb := gormx.NewCallbacks(prometheus2.SummaryOpts{
 		Namespace: "geektime_zl",
 		Subsystem: "webook",
@@ -66,6 +71,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
+	// GORM接入trace
 	err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics(), tracing.WithDBName("webook")))
 	if err != nil {
 		panic(err)

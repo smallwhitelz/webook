@@ -12,6 +12,7 @@ import (
 var L logger.LoggerV1 = logger.NewNoOpLogger()
 
 // 包变量导致我们这个地方的代码非常垃圾
+// 这里统计请求code出现的次数
 var vector *prometheus.CounterVec
 
 func InitCount(opt prometheus.CounterOpts) {

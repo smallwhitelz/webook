@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Callbacks 实现gorm的Plugin的接口
 type Callbacks struct {
 	vector *prometheus.SummaryVec
 }
@@ -66,6 +67,7 @@ func (c *Callbacks) Initialize(db *gorm.DB) error {
 func NewCallbacks(opts prometheus.SummaryOpts) *Callbacks {
 	vector := prometheus.NewSummaryVec(opts,
 		[]string{"type", "table"})
+	// 注册vector，必须做的一步
 	prometheus.MustRegister(vector)
 	return &Callbacks{
 		vector: vector,
