@@ -8,6 +8,7 @@ import (
 	"webook/internal/domain"
 )
 
+// RankingLocalCache 这里又会读又会写，所以采用原子类操作
 type RankingLocalCache struct {
 	topN       *atomicx.Value[[]domain.Article]
 	ddl        *atomicx.Value[time.Time]

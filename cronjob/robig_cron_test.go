@@ -15,6 +15,7 @@ func TestCronExpr(t *testing.T) {
 	assert.NoError(t, err)
 	t.Log("任务", id)
 	expr.Start()
+	// Start会额外的开goroutine，所以不会一直阻塞住，为了启动玩不回立刻关闭，睡10s
 	time.Sleep(time.Second * 10)
 	ctx := expr.Stop() // 意思是你不要调度新任务执行了，你正在执行的继续执行
 	t.Log("发出来停止信号")

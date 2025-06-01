@@ -18,6 +18,7 @@ type ArticleService interface {
 	GetByAuthor(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPubById(ctx context.Context, id, uid int64) (domain.Article, error)
+	// ListPub 找线上库的数据
 	ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error)
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"webook/internal/events/article"
+	"webook/internal/job"
 	"webook/internal/repository"
 	"webook/internal/repository/cache"
 	"webook/internal/repository/dao"
@@ -20,6 +21,11 @@ var thirdPartySet = wire.NewSet( // 第三方依赖
 	InitSaramaClient,
 	InitSyncProducer,
 	InitLogger)
+
+var jobProviderSet = wire.NewSet(
+	service.NewCronJobService,
+	repository.NewPreemptJobRepository,
+	dao.NewGORMJobDAO)
 
 var userSvcProvider = wire.NewSet(
 	dao.NewUserDao,
@@ -93,4 +99,9 @@ func InitArticleHandler(dao dao.ArticleDao) *web.ArticleHandler {
 func InitInteractiveService() service.InteractiveService {
 	wire.Build(thirdPartySet, interactiveSvcSet)
 	return service.NewInteractiveService(nil)
+}
+
+func InitJobScheduler() *job.Scheduler {
+	wire.Build(jobProviderSet, thirdPartySet, job.NewScheduler)
+	return &job.Scheduler{}
 }

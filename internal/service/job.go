@@ -8,9 +8,11 @@ import (
 	"webook/pkg/logger"
 )
 
+// CronJobService mysql的分布式任务调度实现
 type CronJobService interface {
 	Preempt(ctx context.Context) (domain.Job, error)
 	ResetNextTime(ctx context.Context, j domain.Job) error
+	// 这里也可以暴露Job整个的增删改查方法，让用户可以通过http接口对Job进行操作
 }
 
 type cronJobService struct {
@@ -28,6 +30,7 @@ func (c *cronJobService) ResetNextTime(ctx context.Context, j domain.Job) error 
 	return c.repo.UpdateNextTime(ctx, j.Id, nextTime)
 }
 
+// Preempt 抢占
 func (c *cronJobService) Preempt(ctx context.Context) (domain.Job, error) {
 	j, err := c.repo.Preempt(ctx)
 	if err != nil {
@@ -42,8 +45,10 @@ func (c *cronJobService) Preempt(ctx context.Context) (domain.Job, error) {
 	}()
 	j.CancelFunc = func() {
 		ticker.Stop()
+		// 单独起一个ctx，上面的抢占后执行很可能已经过去很久，所以不能用父ctx
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
+		// 释放锁
 		err := c.repo.Release(ctx, j.Id)
 		if err != nil {
 			c.l.Error("释放 job 失败",

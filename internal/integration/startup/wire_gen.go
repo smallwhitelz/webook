@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"webook/internal/events/article"
+	"webook/internal/job"
 	"webook/internal/repository"
 	"webook/internal/repository/cache"
 	"webook/internal/repository/dao"
@@ -54,6 +55,7 @@ func InitWebServer() *gin.Engine {
 	return engine
 }
 
+// InitArticleHandler 这里采用注入dao的形式方便我们去测试不同的数据存储，例如mysql、mongodb、oss
 func InitArticleHandler(dao2 dao.ArticleDao) *web.ArticleHandler {
 	db := InitDB()
 	userDAO := dao.NewUserDao(db)
@@ -86,6 +88,16 @@ func InitInteractiveService() service.InteractiveService {
 	return interactiveService
 }
 
+func InitJobScheduler() *job.Scheduler {
+	db := InitDB()
+	jobDAO := dao.NewGORMJobDAO(db)
+	cronJobRepository := repository.NewPreemptJobRepository(jobDAO)
+	loggerV1 := InitLogger()
+	cronJobService := service.NewCronJobService(cronJobRepository, loggerV1)
+	scheduler := job.NewScheduler(cronJobService, loggerV1)
+	return scheduler
+}
+
 // wire.go:
 
 var thirdPartySet = wire.NewSet(
@@ -93,6 +105,8 @@ var thirdPartySet = wire.NewSet(
 	InitSaramaClient,
 	InitSyncProducer,
 	InitLogger)
+
+var jobProviderSet = wire.NewSet(service.NewCronJobService, repository.NewPreemptJobRepository, dao.NewGORMJobDAO)
 
 var userSvcProvider = wire.NewSet(dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository, service.NewUserService)
 

@@ -81,8 +81,13 @@ func (r *RankingJobV1) Run() error {
 	lock := r.lock
 	r.localLock.Unlock()
 	if lock == nil {
-		// 我能不能在这里，看一眼我是不是负载最低的，如果是，我就尝试获取分布式锁
+		// 1. 我能不能在这里，看一眼我是不是负载最低的，如果是，我就尝试获取分布式锁
+		// 这里有可能会出现，到A节点，然后去看一眼，发现B最低
+		// 到B节点，B去看一眼又发现C最低
+		// 到C节点，C去看一眼又发现A最低，到最后没人抢分布式锁
+
 		// 如果我的负载低于 70% 的节点
+		// 这种方式只能说没有那么凑巧，可以一定程度上解决上面的问题1.
 
 		// 抢分布式锁
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*4)
@@ -121,6 +126,7 @@ func (r *RankingJobV1) Run() error {
 }
 
 func (r *RankingJobV1) loadCycle() {
+	// 假如说每10s去检查一下
 	go func() {
 		for range r.loadTicker.C {
 			// 上报负载
