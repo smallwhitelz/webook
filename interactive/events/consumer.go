@@ -1,13 +1,15 @@
-package article
+package events
 
 import (
 	"context"
 	"github.com/IBM/sarama"
 	"time"
-	"webook/internal/repository"
+	"webook/interactive/repository"
 	"webook/pkg/logger"
 	"webook/pkg/samarax"
 )
+
+const TopicReadEvent = "article_read"
 
 type InteractiveReadEventConsumer struct {
 	repo   repository.InteractiveRepository
@@ -19,7 +21,7 @@ func NewInteractiveReadEventConsumer(repo repository.InteractiveRepository, clie
 	return &InteractiveReadEventConsumer{repo: repo, client: client, l: l}
 }
 
-func (i *InteractiveReadEventConsumer) Start() error {
+func (i *InteractiveReadEventConsumer) StartV1() error {
 	cg, err := sarama.NewConsumerGroupFromClient("interactive", i.client)
 	if err != nil {
 		return err
@@ -34,7 +36,7 @@ func (i *InteractiveReadEventConsumer) Start() error {
 	return err
 }
 
-func (i *InteractiveReadEventConsumer) StartV1() error {
+func (i *InteractiveReadEventConsumer) Start() error {
 	cg, err := sarama.NewConsumerGroupFromClient("interactive", i.client)
 	if err != nil {
 		return err
@@ -50,6 +52,7 @@ func (i *InteractiveReadEventConsumer) StartV1() error {
 	return err
 }
 
+// BatchConsume 批量消费，暂时用不上
 func (i *InteractiveReadEventConsumer) BatchConsume(msgs []*sarama.ConsumerMessage, events []ReadEvent) error {
 	bizs := make([]string, 0, len(events))
 	bizIds := make([]int64, 0, len(events))
@@ -66,4 +69,9 @@ func (i *InteractiveReadEventConsumer) Consume(msg *sarama.ConsumerMessage, even
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return i.repo.IncrReadCnt(ctx, "article", event.Aid)
+}
+
+type ReadEvent struct {
+	Aid int64
+	Uid int64
 }

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	domain2 "webook/interactive/domain"
+	service2 "webook/interactive/service"
 	"webook/internal/domain"
 	"webook/internal/service"
 	"webook/internal/web/jwt"
@@ -17,12 +19,12 @@ import (
 
 type ArticleHandler struct {
 	svc     service.ArticleService
-	intrSvc service.InteractiveService
+	intrSvc service2.InteractiveService
 	l       logger.LoggerV1
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc service.InteractiveService) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc service2.InteractiveService) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		l:       l,
@@ -218,7 +220,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 	var (
 		eg   errgroup.Group
 		art  domain.Article
-		intr domain.Interactive
+		intr domain2.Interactive
 	)
 
 	eg.Go(func() error {

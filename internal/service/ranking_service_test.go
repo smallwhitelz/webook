@@ -6,6 +6,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"testing"
 	"time"
+	service2 "webook/interactive/service"
 	"webook/internal/domain"
 	svcmocks "webook/internal/service/mocks"
 )
@@ -15,14 +16,14 @@ func TestBatchRankingService_TopN(t *testing.T) {
 	now := time.Now()
 	testCases := []struct {
 		name string
-		mock func(ctrl *gomock.Controller) (InteractiveService, ArticleService)
+		mock func(ctrl *gomock.Controller) (service2.InteractiveService, ArticleService)
 
 		wantArts []domain.Article
 		wantErr  error
 	}{
 		{
 			name: "成功获取",
-			mock: func(ctrl *gomock.Controller) (InteractiveService, ArticleService) {
+			mock: func(ctrl *gomock.Controller) (service2.InteractiveService, ArticleService) {
 				intrSvc := svcmocks.NewMockInteractiveService(ctrl)
 				artSvc := svcmocks.NewMockArticleService(ctrl)
 				// 先模拟批量获取数据

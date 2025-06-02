@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+// webook是go.mod里的module
+option go_package = "webook/grpc";
+
+// 这种是不可行的
+//option go_package = "abc";
+
+// 定义一个结构体
+message User{
+  // 1,2是编号不是值
+  int64 id = 1;
+  string name = 2;
+
+  // 编号可以中断，不连续，但是不能重复
+  // 编号是用来序列化和反序列化数据的
+  // 一个编号一旦被分配出去，就不要去复用
+  string avatar = 4;
+
+  // map类型
+  map<string,string> attributes = 5;
+  // 数组类型
+  repeated string nicknames = 6;
+
+  // 指可选字段
+  // 用得少
+  optional int32 age = 7;
+
+  // 用message作为
+  Address address = 8;
+
+  // 指其中的字段中只有一个有值
+  // 不要用这个oneof，很恶心
+  oneof contacts{
+    string email = 9;
+    string phone = 10;
+  }
+  Gender gender = 11;
+}
+
+message Address{
+  string province =1 ;
+  string city = 3;
+}
+
+// 枚举
+enum Gender{
+  UNKNOWN = 0;
+  MALE = 1;
+  FEMALE = 2;
+}
+
+// 定义接口
+service UserService{
+  rpc GetByID(GetByIDRequest) returns (GetByIDResponse);
+}
+
+// 定义输入
+message GetByIDRequest{
+  int64 id = 1;
+}
+
+// 定义输出
+message GetByIDResponse{
+  User user = 1;
+}
+
+// 进到当前目录下，编译protobuf文件
+// --go_out：生成代码到当前目录下
+// --go_opt=paths=source_relative：配置了生成Go代码的路径，source_relative表示相对路径将相对于.proto文件的位置计算
+// --go-grpc_out：这个告诉编译器生成Go grpc源代码
+// --go-grpc_opt=paths=source_relative：配置了生成Go grpc代码的路径，source_relative表示相对路径将相对于.proto文件的位置计算
+// protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative user.proto

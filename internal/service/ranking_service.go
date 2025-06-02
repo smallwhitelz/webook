@@ -6,6 +6,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"math"
 	"time"
+	service2 "webook/interactive/service"
 	"webook/internal/domain"
 	"webook/internal/repository"
 )
@@ -19,7 +20,7 @@ type RankingService interface {
 
 type BatchRankingService struct {
 	// 用来取点赞数
-	intrSvc InteractiveService
+	intrSvc service2.InteractiveService
 
 	// 用来查找文章
 	artSvc ArticleService
@@ -40,7 +41,7 @@ func (b *BatchRankingService) GetTopN(ctx context.Context) ([]domain.Article, er
 	return b.repo.GetTopN(ctx)
 }
 
-func NewBatchRankingService(intrSvc InteractiveService, artSvc ArticleService, repo repository.RankingRepository) RankingService {
+func NewBatchRankingService(intrSvc service2.InteractiveService, artSvc ArticleService, repo repository.RankingRepository) RankingService {
 	return &BatchRankingService{
 		intrSvc:   intrSvc,
 		artSvc:    artSvc,

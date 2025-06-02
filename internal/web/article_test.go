@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	service2 "webook/interactive/service"
 	"webook/internal/domain"
 	"webook/internal/service"
 	svcmocks "webook/internal/service/mocks"
@@ -22,7 +23,7 @@ import (
 func TestArticleHandler_Publish(t *testing.T) {
 	testCases := []struct {
 		name    string
-		mock    func(ctrl *gomock.Controller) (service.ArticleService, service.InteractiveService)
+		mock    func(ctrl *gomock.Controller) (service.ArticleService, service2.InteractiveService)
 		reqBody string
 
 		wantCode int
@@ -30,7 +31,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 	}{
 		{
 			name: "新建并发表成功",
-			mock: func(ctrl *gomock.Controller) (service.ArticleService, service.InteractiveService) {
+			mock: func(ctrl *gomock.Controller) (service.ArticleService, service2.InteractiveService) {
 				svc := svcmocks.NewMockArticleService(ctrl)
 				intrSvc := svcmocks.NewMockInteractiveService(ctrl)
 				svc.EXPECT().Publish(gomock.Any(), domain.Article{
@@ -55,7 +56,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 		},
 		{
 			name: "已有帖子发表失败",
-			mock: func(ctrl *gomock.Controller) (service.ArticleService, service.InteractiveService) {
+			mock: func(ctrl *gomock.Controller) (service.ArticleService, service2.InteractiveService) {
 				svc := svcmocks.NewMockArticleService(ctrl)
 				intrSvc := svcmocks.NewMockInteractiveService(ctrl)
 				svc.EXPECT().Publish(gomock.Any(), domain.Article{
@@ -82,7 +83,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 		},
 		{
 			name: "发表失败",
-			mock: func(ctrl *gomock.Controller) (service.ArticleService, service.InteractiveService) {
+			mock: func(ctrl *gomock.Controller) (service.ArticleService, service2.InteractiveService) {
 				svc := svcmocks.NewMockArticleService(ctrl)
 				intrSvc := svcmocks.NewMockInteractiveService(ctrl)
 				svc.EXPECT().Publish(gomock.Any(), domain.Article{
@@ -108,7 +109,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 		},
 		{
 			name: "Bind错误",
-			mock: func(ctrl *gomock.Controller) (service.ArticleService, service.InteractiveService) {
+			mock: func(ctrl *gomock.Controller) (service.ArticleService, service2.InteractiveService) {
 				svc := svcmocks.NewMockArticleService(ctrl)
 				intrSvc := svcmocks.NewMockInteractiveService(ctrl)
 				return svc, intrSvc
