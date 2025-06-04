@@ -5,10 +5,6 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
-	repository2 "webook/interactive/repository"
-	cache2 "webook/interactive/repository/cache"
-	dao2 "webook/interactive/repository/dao"
-	service2 "webook/interactive/service"
 	"webook/internal/events/article"
 	"webook/internal/job"
 	"webook/internal/repository"
@@ -42,12 +38,6 @@ var articlSvcProvider = wire.NewSet(
 	cache.NewArticleRedisCache,
 	dao.NewArticleGORMDAO,
 	service.NewArticleService)
-
-var interactiveSvcSet = wire.NewSet(dao2.NewGORMInteractiveDAO,
-	cache2.NewInteractiveRedisCache,
-	repository2.NewCachedInteractiveRepository,
-	service2.NewInteractiveService,
-)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(
@@ -98,11 +88,6 @@ func InitArticleHandler(dao dao.ArticleDao) *web.ArticleHandler {
 		article.NewSaramaSyncProducer,
 		web.NewArticleHandler)
 	return &web.ArticleHandler{}
-}
-
-func InitInteractiveService() service2.InteractiveService {
-	wire.Build(thirdPartySet, interactiveSvcSet)
-	return service2.NewInteractiveService(nil)
 }
 
 func InitJobScheduler() *job.Scheduler {

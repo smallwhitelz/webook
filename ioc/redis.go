@@ -15,3 +15,14 @@ func InitRedis() redis.Cmdable {
 func InitRlockClient(client redis.Cmdable) *rlock.Client {
 	return rlock.NewClient(client)
 }
+
+func InitRedisV1() redis.Cmdable {
+	// 这里假设你有一个独立的redis配置文件
+	v := viper.New()
+	v.SetConfigType("conf")
+	v.SetConfigFile("config/redis.conf")
+	addr := viper.GetString("addr")
+	return redis.NewClient(&redis.Options{
+		Addr: addr,
+	})
+}
