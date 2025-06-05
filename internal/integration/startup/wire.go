@@ -44,7 +44,6 @@ func InitWebServer() *gin.Engine {
 		thirdPartySet,
 		userSvcProvider,
 		articlSvcProvider,
-		interactiveSvcSet,
 		// cache 部分
 		cache.NewRedisCodeCache,
 

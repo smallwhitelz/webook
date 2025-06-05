@@ -17,7 +17,8 @@ import (
 )
 
 func main() {
-	InitViperV1()
+	//InitViperV1()
+	InitViperWatch()
 	InitLogger()
 	tpCancel := ioc.InitOTEL()
 	defer func() {
@@ -123,9 +124,6 @@ func InitViperWatch() {
 	viper.SetConfigFile(*cfile)
 	// 有严格的顺序要求，一定在set，add等方法之后调用
 	viper.WatchConfig()
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		log.Println(viper.GetString("test.key"))
-	})
 	// 读取配置
 	err := viper.ReadInConfig()
 	if err != nil {
