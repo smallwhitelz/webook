@@ -11,6 +11,7 @@ kafka:
   addr:
     - "43.154.97.245:9094"
 
+# grpc客户端调用grpc服务
 grpc:
   client:
     intr:

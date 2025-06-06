@@ -10,6 +10,7 @@ import (
 	"webook/internal/client"
 )
 
+// InitIntrClient 初始化intr的客户端，从而实现本地和远程的切换调用
 func InitIntrClient(svc service.InteractiveService) intrv1.InteractiveServiceClient {
 	type Config struct {
 		Addr      string `yaml:"addr"`
@@ -25,7 +26,7 @@ func InitIntrClient(svc service.InteractiveService) intrv1.InteractiveServiceCli
 	if !cfg.Secure {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	cc, err := grpc.Dial(cfg.Addr, opts...)
+	cc, err := grpc.NewClient(cfg.Addr, opts...)
 	if err != nil {
 		panic(err)
 	}
