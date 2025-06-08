@@ -21,6 +21,17 @@ type Validator[T migrator.Entity] struct {
 	direction string
 	// 用在 target->base批量查询
 	batchSize int
+
+	// 用在增量校验与修复的字段
+	// 从某个修改时间开始进行增量修复和校验
+	utime int64
+	// <= 0就认为中断
+	// > 0 就认为睡眠
+	sleepInterval time.Duration
+
+	// 因为全量和增量的条件不同，所以这里抽出一个公共方法去解决
+	// 用于源表到目标表的校验
+	formBase func(ctx context.Context, offset int) (T, error)
 }
 
 // Validate 执行校验
@@ -42,26 +53,61 @@ func (v *Validator[T]) Validate(ctx context.Context) error {
 	return eg.Wait()
 }
 
+// Full 暴露给业务实现全量校验的方法
+func (v *Validator[T]) Full() *Validator[T] {
+	v.formBase = v.fullFromBase
+	return v
+}
+
+// Incr 暴露给业务实现增量校验的方法
+func (v *Validator[T]) Incr() *Validator[T] {
+	v.formBase = v.incrFromBase
+	return v
+}
+
+// fullFromBase 全量校验，用于源表到目标表的校验
+func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	// 没有引入utime和sleepInterval的写法
+	err := v.base.WithContext(dbCtx).Order("id").Offset(offset).First(&src).Error
+	return src, err
+}
+
+// incrFromBase 增量校验，用于源表到目标表的校验
+func (v *Validator[T]) incrFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	err := v.base.WithContext(dbCtx).Where("utime > ?", v.utime).
+		Order("utime").Offset(offset).First(&src).Error
+	return src, err
+}
+
 // validateBaseToTarget 源表到目标表的校验
 // 源表有，目标表没有
 func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
-	// offset在最后肯定要++，在err!=nil也要++，所以干脆让他一开始就++
-	// 从-1开始，进去就是第0个
-	offset := -1
+	offset := 0
 	for {
 		// 校验要选择合适的时机，比如进来就看看负载是否高，高的话可以睡一会再进来看看
-		offset++
-		var src T
-		err := v.base.WithContext(ctx).Order("id").Offset(offset).First(&src).Error
+		src, err := v.formBase(ctx, offset)
 		if err == gorm.ErrRecordNotFound {
+			// 增量校验要考虑一直运行的
+			if v.sleepInterval <= 0 {
+				return nil
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 			// 这个就是没有数据了
-			return nil
 		}
 		if err != nil {
 			// 查询出错
 			v.l.Error("base -> target 查询base失败", logger.Error(err))
 			// 在这里offset是要+1，因为不能因为一条错误数据中断整个校验
 			// 或者可以用更优雅的方式，同一个offset错3次再不管他，也就是引入了重试机制，但是实在没有必要
+			// 增量写法
+			offset++
 			continue
 		}
 		// 这边就是正常情况
@@ -86,25 +132,33 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
 				logger.Int64("id", src.ID()),
 				logger.Error(err))
 		}
+		offset++
 	}
 }
 
 // validateTargetToBase 源表没有，目标表有
 // 这种情况很少见，唯一有的情况就是源表的数据同步到目标表后，在这期间，源表的某个数据被硬删除了，导致目标表有这个数据，源表没有
 func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
-	offset := -v.batchSize
+	offset := 0
 	for {
-		offset += v.batchSize
 		var ts []T
 		// 这里因为我们主要是比对源表如果有硬删除的，就把目标表的也删除掉，所以只用查id
 		// 然后去源表里看这个id还在不在，不在就删除掉目标表的这个数据
+		// 这里增量和全量用一个
+		// 这里的检验和同步是base把数据删了，但是target的utime是不变的，所以没用utime
 		err := v.target.WithContext(ctx).Select("id").
 			Order("id").Offset(offset).Limit(v.batchSize).Find(&ts).Error
 		if err == gorm.ErrRecordNotFound || len(ts) == 0 {
-			return nil
+			// 增量校验要考虑一直运行的
+			if v.sleepInterval <= 0 {
+				return nil
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 		}
 		if err != nil {
 			v.l.Error("target => base 查询target失败", logger.Error(err))
+			offset += len(ts)
 			continue
 		}
 		// 在这里有数据
@@ -116,12 +170,14 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 		if err == gorm.ErrRecordNotFound || len(srcTs) == 0 {
 			// 都代表，base里面一条对应的数据都没有
 			v.notifyBaseMissing(ts)
+			offset += len(ts)
 			continue
 		}
 		if err != nil {
 			v.l.Error("target => base 查询 base 失败", logger.Error(err))
 			// 保守起见，我都认为base里面没有数据，但是没多大必要
 			// v.notifyBaseMissing(ts) 再调一次这个
+			offset += len(ts)
 			continue
 		}
 		// 找差集，diff里面的，就是target有，但是base没有的
@@ -131,8 +187,12 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 		v.notifyBaseMissing(diff)
 		// 没有找够一批，说明也没数据了
 		if len(ts) < v.batchSize {
-			return nil
+			if v.sleepInterval <= 0 {
+				return nil
+			}
+			time.Sleep(v.sleepInterval)
 		}
+		offset += len(ts)
 	}
 }
 
