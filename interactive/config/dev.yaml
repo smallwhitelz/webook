@@ -5,7 +5,10 @@ redis:
   addr: "43.154.97.245:6379"
 
 db:
-  dsn: "root:root@tcp(43.154.97.245:13316)/webook"
+  src:
+    dsn: "root:root@tcp(43.154.97.245:13316)/webook"
+  dst:
+    dsn: "root:root@tcp(43.154.97.245:13316)/webook_intr"
 
 kafka:
   addr:
@@ -14,3 +17,7 @@ kafka:
 grpc:
   server:
     addr: ":8090"
+
+migrator:
+  http:
+    addr: ":8082"

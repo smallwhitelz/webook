@@ -9,10 +9,36 @@ import (
 	"gorm.io/plugin/prometheus"
 	"webook/interactive/repository/dao"
 	"webook/pkg/gormx"
+	"webook/pkg/gormx/connpool"
 	"webook/pkg/logger"
 )
 
-func InitDB(l logger.LoggerV1) *gorm.DB {
+type SrcDB *gorm.DB
+type DstDB *gorm.DB
+
+func InitSrcDB() SrcDB {
+	return InitDB("src")
+}
+
+func InitDstDB() DstDB {
+	return InitDB("dst")
+}
+
+func InitDoubleWritePool(src SrcDB, dst DstDB, l logger.LoggerV1) *connpool.DoubleWritePool {
+	return connpool.NewDoubleWritePool(src, dst, l)
+}
+
+func InitBizDB(p *connpool.DoubleWritePool) *gorm.DB {
+	doubleWrite, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: p,
+	}))
+	if err != nil {
+		panic(err)
+	}
+	return doubleWrite
+}
+
+func InitDB(key string) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}
@@ -20,7 +46,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	var cfg Config = Config{
 		DSN: "root:root@tcp(43.154.97.245:13316)/webook",
 	}
-	err := viper.UnmarshalKey("db", &cfg)
+	err := viper.UnmarshalKey("db."+key, &cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +56,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	}
 	// 采集类似数据库连接池的一些监控数据
 	err = db.Use(prometheus.New(prometheus.Config{
-		DBName: "webook",
+		DBName: "webook" + key,
 		// 每15秒采集一次数据
 		RefreshInterval: 15,
 		MetricsCollector: []prometheus.MetricsCollector{
@@ -47,7 +73,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	cb := gormx.NewCallbacks(prometheus2.SummaryOpts{
 		Namespace: "geektime_zl",
 		Subsystem: "webook",
-		Name:      "gorm_db",
+		Name:      "gorm_db_" + key,
 		Help:      "这是一个统计 GORM 的数据库查询",
 		ConstLabels: map[string]string{
 			"instance_id": "my_instance",
@@ -65,7 +91,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 		panic(err)
 	}
 	// GORM接入trace
-	err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics(), tracing.WithDBName("webook")))
+	err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics(), tracing.WithDBName("webook_"+key)))
 	if err != nil {
 		panic(err)
 	}

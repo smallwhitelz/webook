@@ -4,7 +4,9 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 	events2 "webook/interactive/events"
+	"webook/interactive/repository/dao"
 	"webook/internal/events"
+	"webook/pkg/migrator/events/fixer"
 )
 
 func InitSaramaClient() sarama.Client {
@@ -25,7 +27,15 @@ func InitSaramaClient() sarama.Client {
 	return client
 }
 
+func InitSaramaSyncProducer(client sarama.Client) sarama.SyncProducer {
+	p, err := sarama.NewSyncProducerFromClient(client)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
 // InitConsumers wire没有办法找到同类型的所有实现，所以逼不得已只能写这种代码
-func InitConsumers(c1 *events2.InteractiveReadEventConsumer) []events.Consumer {
-	return []events.Consumer{c1}
+func InitConsumers(c1 *events2.InteractiveReadEventConsumer, fixConsumer *fixer.Consumer[dao.Interactive]) []events.Consumer {
+	return []events.Consumer{c1, fixConsumer}
 }

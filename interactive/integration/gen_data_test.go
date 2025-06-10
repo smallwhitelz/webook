@@ -71,16 +71,16 @@ func TestGenData(t *testing.T) {
 	// 这个为 true，只会输出 SQL，但是不会执行，也不会报错
 	// db.DryRun = true
 	// 1000 批
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
 		// 每次 100 条
 		// 你可以考虑直接用 CreateInBatches，GORM 帮你分批次
 		// 我自己分是为了控制内存消耗
-		const batchSize = 100
+		const batchSize = 2
 		data := make([]dao.Interactive, 0, batchSize)
 		now := time.Now().UnixMilli()
 		for j := 0; j < batchSize; j++ {
 			data = append(data, dao.Interactive{
-				Biz:        "test",
+				Biz:        "test-1",
 				BizId:      int64(i*batchSize + j + 1),
 				ReadCnt:    rand.Int63(),
 				LikeCnt:    rand.Int63(),

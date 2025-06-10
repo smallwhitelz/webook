@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
+	"webook/pkg/migrator"
 )
 
 type InteractiveDAO interface {
@@ -166,6 +167,18 @@ func (dao *GORMInteractiveDAO) IncrReadCnt(ctx context.Context, biz string, bizI
 		Ctime:   now,
 		Utime:   now,
 	}).Error
+}
+
+func (i Interactive) ID() int64 {
+	return i.Id
+}
+
+func (i Interactive) CompareTo(dst migrator.Entity) bool {
+	val, ok := dst.(Interactive)
+	if !ok {
+		return false
+	}
+	return i == val
 }
 
 // UserLikeBiz 记录用户的点赞信息

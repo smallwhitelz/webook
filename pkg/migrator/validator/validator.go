@@ -34,6 +34,20 @@ type Validator[T migrator.Entity] struct {
 	formBase func(ctx context.Context, offset int) (T, error)
 }
 
+func NewValidator[T migrator.Entity](base *gorm.DB, target *gorm.DB, l logger.LoggerV1,
+	producer events.Producer, direction string) *Validator[T] {
+	res := &Validator[T]{
+		base:      base,
+		target:    target,
+		l:         l,
+		producer:  producer,
+		direction: direction,
+		batchSize: 100,
+	}
+	res.formBase = res.fullFromBase
+	return res
+}
+
 // Validate 执行校验
 func (v *Validator[T]) Validate(ctx context.Context) error {
 	// 同步写法
@@ -65,6 +79,17 @@ func (v *Validator[T]) Incr() *Validator[T] {
 	return v
 }
 
+// Utime 和 SleepInterval 暴露Utime和SleepInterval来控制全量还是增量
+func (v *Validator[T]) Utime(t int64) *Validator[T] {
+	v.utime = t
+	return v
+}
+
+func (v *Validator[T]) SleepInterval(interval time.Duration) *Validator[T] {
+	v.sleepInterval = interval
+	return v
+}
+
 // fullFromBase 全量校验，用于源表到目标表的校验
 func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
@@ -92,6 +117,9 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
 	for {
 		// 校验要选择合适的时机，比如进来就看看负载是否高，高的话可以睡一会再进来看看
 		src, err := v.formBase(ctx, offset)
+		if err == context.DeadlineExceeded || err == context.Canceled {
+			return nil
+		}
 		if err == gorm.ErrRecordNotFound {
 			// 增量校验要考虑一直运行的
 			if v.sleepInterval <= 0 {
@@ -148,6 +176,9 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 		// 这里的检验和同步是base把数据删了，但是target的utime是不变的，所以没用utime
 		err := v.target.WithContext(ctx).Select("id").
 			Order("id").Offset(offset).Limit(v.batchSize).Find(&ts).Error
+		if err == context.DeadlineExceeded || err == context.Canceled {
+			return nil
+		}
 		if err == gorm.ErrRecordNotFound || len(ts) == 0 {
 			// 增量校验要考虑一直运行的
 			if v.sleepInterval <= 0 {

@@ -19,6 +19,12 @@ func main() {
 			panic(err)
 		}
 	}
+	go func() {
+		err := app.adminServer.Start()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	err := app.server.Serve()
 	if err != nil {
 		panic(err)
