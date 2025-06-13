@@ -164,6 +164,74 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
 	}
 }
 
+// validateBaseToTargetV1 批量写法
+func (v *Validator[T]) validateBaseToTargetV1(ctx context.Context) error {
+	offset := 0
+	const limit = 100
+	for {
+		var srcs []T
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		err := v.base.WithContext(dbCtx).Where("utime > ?", v.utime).
+			Order("utime").Offset(offset).Limit(limit).Find(&srcs).Error
+		cancel()
+		switch err {
+		// 在Find中其实不会有这种错误
+		//case gorm.ErrRecordNotFound:
+		case context.Canceled, context.DeadlineExceeded:
+			return err
+		case nil:
+			if len(srcs) == 0 {
+				// 结束，没有数据
+				return nil
+			}
+			err = v.dstDiffV1(srcs)
+			if err != nil {
+				return err
+			}
+		default:
+			v.l.Error("base -> target 查询base失败", logger.Error(err))
+		}
+		if len(srcs) < limit {
+			// 没有数据
+			return nil
+		}
+		offset += len(srcs)
+	}
+}
+
+func (v *Validator[T]) dstDiffV1(srcs []T) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	ids := slice.Map(srcs, func(idx int, src T) int64 {
+		return src.ID()
+	})
+	var dsts []T
+	err := v.target.WithContext(ctx).Where("id IN ?", ids).Find(&dsts).Error
+	if err != nil {
+		return err
+	}
+	dstMap := v.toMap(dsts)
+	for _, src := range srcs {
+		dst, ok := dstMap[src.ID()]
+		if !ok {
+			v.notify(src.ID(), events.InconsistentEventTypeTargetMissing)
+			continue
+		}
+		if !src.CompareTo(dst) {
+			v.notify(src.ID(), events.InconsistentEventTypeNeq)
+		}
+	}
+	return nil
+}
+
+func (v *Validator[T]) toMap(dsts []T) map[int64]T {
+	res := make(map[int64]T, len(dsts))
+	for _, val := range dsts {
+		res[val.ID()] = val
+	}
+	return res
+}
+
 // validateTargetToBase 源表没有，目标表有
 // 这种情况很少见，唯一有的情况就是源表的数据同步到目标表后，在这期间，源表的某个数据被硬删除了，导致目标表有这个数据，源表没有
 func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
