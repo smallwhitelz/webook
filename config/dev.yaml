@@ -15,5 +15,9 @@ kafka:
 grpc:
   client:
     intr:
-      addr: "localhost:8090"
-      threshold: 12
+      addr: "etcd:///service/interactive"
+
+etcd:
+  etcdAddr: "43.154.97.245:12379"
+  username: "root"
+  password: "1234"
